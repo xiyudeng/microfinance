@@ -1,29 +1,30 @@
 clear all; close all; clc;
-
+% rng(1)
 %% disclaimer
 % This file is a scratch work I use to understand the algorithm
 
 %% simulation
 
 r = 0.01; % interest rate
-Rbar = 1; % Rbar
-alpha = 0.001; % alpha variable used in the gradient ascent algorithm
+% Rbar = 0.001; % Rbar
+alpha = 0.01; % alpha variable used in the gradient ascent algorithm
 ninfo = 5; % number of information for each application
 
 % control parameters
-phi = 0.1*ones(ninfo,1);
-gamma = 0.1*ones(ninfo,1);
+phi = 0*ones(ninfo,1);
+gamma = 0*ones(ninfo,1);
 z = [phi;gamma];
 
-t_end = 1000; % intended end time (number of iteration)
+t_end = 100; % intended end time (number of iteration)
 
 R_cum = zeros(1,t_end); % initiate cumulative reward each time period
+Rbar = zeros(1,t_end); % initiate Rbar vector
 
 % iterate each time period
 for t_idx = 1:t_end
     
     % number of applications at time period
-    Nt = randi([0,50],1);
+    Nt = randi([500,1500],1);
     
     % generate application informations
     s = generate_apc_info(Nt);
@@ -44,12 +45,18 @@ for t_idx = 1:t_end
     R(a == 1 & p <= 0.5) = -1;
     
     % update the control parameters
-    theta1 = s.*phi'; % tetha when accepted
-    theta0 = s.*gamma'; % tethat when declined
-    exp_t1 = exp(theta1); exp_t1(exp_t1==0) = realmin;
-    exp_t0 = exp(theta0); exp_t0(exp_t0==0) = realmin;
-    exp_T1T0 = exp_t1 + exp_t0; exp_T1T0(exp_T1T0==0) = realmin;
-    exp_T1T0_sqr = exp_T1T0.^2; exp_T1T0_sqr(exp_T1T0_sqr==0) = realmin;
+    theta1 = s.*phi'; theta1(theta1==0) = realmin; % tetha when accepted
+    theta0 = s.*gamma'; theta0(theta0==0) = realmin; % tethat when declined
+    exp_t1 = exp(theta1); 
+        exp_t1(exp_t1==0) = realmin; exp_t1(isinf(exp_t1)) = realmax;
+    exp_t0 = exp(theta0); 
+        exp_t0(exp_t0==0) = realmin; exp_t0(isinf(exp_t0)) = realmax;
+    exp_T1T0 = exp_t1 + exp_t0; 
+        exp_T1T0(exp_T1T0==0) = realmin; 
+        exp_T1T0(isinf(exp_T1T0)) = realmax;
+    exp_T1T0_sqr = exp_T1T0.^2; 
+        exp_T1T0_sqr(exp_T1T0_sqr==0) = realmin;
+        exp_T1T0_sqr(isinf(exp_T1T0_sqr)) = realmax;
     
     acctd_idx = a == 1; % index of the accepted applications
     
@@ -69,10 +76,29 @@ for t_idx = 1:t_end
     del_pi(acctd_idx,ninfo+1:end) = ...
         (exp_t1(acctd_idx,:).*exp_t0(acctd_idx,:).*s(acctd_idx,:))...
         ./ exp_T1T0_sqr(acctd_idx,:);
+    del_pi(del_pi==0) = realmin;
+    del_pi(isinf(del_pi)) = realmax;
+    delpi0pi = del_pi./pi; delpi0pi(isinf(delpi0pi)) = realmax;
     
-    F = sum((R-Rbar).*(del_pi./pi),1);
+    avgR = mean(R);
+        if isnan(avgR)
+            avgR = 0;
+        end
+    if t_idx == 1
+    Rbar(t_idx) = avgR;
+    else
+    Rbar(t_idx) = Rbar(t_idx-1) + avgR;
+    end
+    F = sum((R-mean(Rbar)).*(delpi0pi),1);
+%     Rbar = Rbar+alpha*(2-avgR);
+%     F = sum((R-Rbar(1)).*(delpi0pi),1);
+%     F = sum((R-Rbar(1)).*(del_pi./[theta1,theta0]),1);
+%     F = sum((R-mean(R)).*(delpi0pi),1);
+%     F = sum((R-mean(R_cum)).*(delpi0pi),1);
+        F(isinf(F)) = realmax;
     
     z = z + alpha.*F'; % update parameters
+    z(isinf(z)) = realmax;
     
     % reform the parameters
     phi = z(1:ninfo);
@@ -209,9 +235,11 @@ function pi = acceptance_prob(s,phi,gamma)
 
 theta1 = s*phi(:);
 theta0 = s*gamma(:);
+exp_t1 = exp(theta1); exp_t1(exp_t1==0) = realmin;
+exp_t0 = exp(theta0); exp_t0(exp_t0==0) = realmin;
 
-pi = theta1 ./ (theta1+theta0);
-pi(isnan(pi)) = 0;
+pi = exp_t1 ./ (exp_t1+exp_t0);
+pi(isnan(pi)) = realmin;
 
 end
 
