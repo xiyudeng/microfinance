@@ -63,8 +63,8 @@ function pi = acceptance_prob(s,phi,gamma)
 
 theta1 = s*phi(:);
 theta0 = s*gamma(:);
-exp_t1 = exp(theta1); exp_t1(exp_t1==0) = realmin;
-exp_t0 = exp(theta0); exp_t0(exp_t0==0) = realmin;
+exp_t1 = exp(theta1);
+exp_t0 = exp(theta0);
 
 pi = exp_t1 ./ (exp_t1+exp_t0);
 
