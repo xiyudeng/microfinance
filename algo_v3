@@ -47,7 +47,9 @@ for i = 1:t
 
     % policy pi
 %     pie = exp(theta1) ./ (exp(theta1)+exp(theta0)); 
-    pie = 1./(1+exp(-theta1));
+    exp_t1 = exp(-theta1);
+        exp_t1(exp_t1==0) = realmin; exp_t1(isinf(exp_t1)) = realmax;
+    pie = 1./(1+exp_t1);
     info{1,i}.pie = pie;
 
     % make decision
@@ -74,7 +76,10 @@ for i = 1:t
     Aid = find(A == 1); 
     del_pi = partial_pi_partial_z(s,z,Aid,ninfo,N);
     
-    F = sum((R - Rbar).*(del_pi./pi),1);
+    F = (R - Rbar).*(del_pi./pie);
+        Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
+    F = sum(F,1);
+        F(isinf(F)) = realmax;
     
     
     % update paras for next iter
@@ -145,10 +150,12 @@ function del_pi = partial_pi_partial_z(s,z,Aid,ninfo,N)
     tmp1 = s.*phi'; 
 %     tmp0 = s.*gamma'; 
     exp_t1 = exp(tmp1);
+        exp_t1(exp_t1==0) = realmin; exp_t1(isinf(exp_t1)) = realmax;
 %     exp_t0 = exp(tmp0);
     exp_t0 = 1;
     exp_plus = exp_t1 + exp_t0;
     exp_sqr = exp_plus.^2;
+        exp_sqr(exp_sqr==0) = realmin; exp_sqr(isinf(exp_sqr)) = realmax;
     
 %     del_pi(Aid,1:ninfo) = ((exp_t1(Aid,:).*s(Aid,:).*exp_plus(Aid,:))...
 %         + ((exp_t1(Aid,:).^2).*s(Aid,:)))./exp_sqr(Aid,:);
@@ -163,10 +170,11 @@ function del_pi = partial_pi_partial_z(s,z,Aid,ninfo,N)
 
     del_pi(~Aid,:) = (exp_t1(~Aid,:).*s(~Aid,:))...
         ./ exp_sqr(~Aid,:);
+        del_pi(del_pi==0) = realmin; del_pi(isinf(del_pi)) = realmax;
 end
 
 %%
 function p = returned_prob(s)
     % calculate the probability
-    p = sum(s,2) ./ 20;
+    p = sum(s,2) ./ 4;
 end
