@@ -2,11 +2,11 @@
 clear all; close all; clc;
 
 %% initialization
-t = 1000; % number of period
+t = 100; % number of period
 info = cell([1 t]);
 Nt = []; % list to store applicants number
 alpha = 0.001; % step size / learning rate
-c = 0.1; % interest rate
+c = 1+0.1; % interest rate
 % eta = % -1 or c
 
 Rbar = 0; % Rbar
@@ -17,14 +17,17 @@ phi = 0.1*ones([ninfo,1]);
 % gamma = 0.1*ones([ninfo,1]);
 % z = [phi;gamma];
 z = phi;
+phis = [];
 R_cum = zeros([t,1]);
+ratioAs = [];
 
 %% for each period
 for i = 1:t
     % from environment
 
     % generate applicants number & info
-    N = randi([500,1500],1); % Nt as random number in [500, 1500]
+%     N = randi([500,1500],1); % Nt as random number in [500, 1500]
+    N = 20000; %randi([10000,20000],1);
     Nt = [Nt,N];
     info{1,i}.Nt = N; % N applicants
 
@@ -35,6 +38,7 @@ for i = 1:t
 
     % calculate pie
     info{1,i}.phi = phi;
+    phis = [phis;phi];
 %     info{1,i}.gamma = gamma;
     info{1,i}.z = z;
 
@@ -52,7 +56,9 @@ for i = 1:t
     A = (decision_varialbe < pie);
     info{1,i}.A = A;
     info{1,i}.numA = sum(A);
-    info{1,i}.ratioA = info{1,i}.numA/N;
+    ratioA = info{1,i}.numA/N;
+    info{1,i}.ratioA = ratioA;
+    ratioAs = [ratioAs;ratioA];
 
     % calculate return & get profit
     p = returned_prob(s);  % probability to return the money with interest c
@@ -81,8 +87,26 @@ for i = 1:t
     R_cum(i) = sum(R);
 end
 
+figure(1)
 plot(R_cum);hold on
 plot(zeros(t,1),'r--')
+xlabel('t');
+ylabel('R_cum');
+title('rewards vs time')
+
+
+figure(2)
+plot(phis);
+xlabel('t');
+ylabel('\phi');
+title('\phi vs time')
+
+figure(3)
+plot(ratioAs);
+xlabel('t');
+ylabel('ratioA');
+title('ratioA vs time')
+
 
 % function  = probReturn()
 % % g(s_it) should be in [0, 1]
