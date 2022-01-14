@@ -6,7 +6,7 @@ t = 100; % number of period
 info = cell([1 t]);
 Nt = []; % list to store applicants number
 alpha = 0.001; % step size / learning rate
-c = 1+0.1; % interest rate
+c = 0.1; % interest rate
 % eta = % -1 or c
 
 Rbar = 0; % Rbar
@@ -43,12 +43,14 @@ for i = 1:t
     info{1,i}.z = z;
 
     theta1 = s * phi(:); % Nx1
+
 %     theta0 = s * gamma(:); % Nx1
 
     % policy pi
 %     pie = exp(theta1) ./ (exp(theta1)+exp(theta0)); 
     exp_t1 = exp(-theta1);
         exp_t1(exp_t1==0) = realmin; exp_t1(isinf(exp_t1)) = realmax;
+    
     pie = 1./(1+exp_t1);
     info{1,i}.pie = pie;
 
@@ -68,21 +70,36 @@ for i = 1:t
     return_varialbe = rand(N,1);
     info{1,i}.p = p;
     R = zeros([N,1]);
-    R(A == 1 & return_varialbe < p) = c;
+    R(A == 1 & return_varialbe < p) = 1+c;
     R(A == 1 & return_varialbe >= p) = -1;
     info{1,i}.R = R;
     
     % index of the accepted applications
     Aid = find(A == 1); 
     del_pi = partial_pi_partial_z(s,z,Aid,ninfo,N);
-    
+ 
+    del_pi(del_pi == 0) = realmin;
+    del_pi(del_pi == inf) = realmax;
+    pie(pie == 0) = realmin;
+
     F = (R - Rbar).*(del_pi./pie);
         Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
-    F = sum(F,1);
+    % fix the  NaN problem
+    if length(find(abs(F)>10^308))>(3*N/4)
+        F = F./10^307;
+        F = sum(F,1);
+        F = F*10^307;
         F(isinf(F)) = realmax;
+
+    else
+        F = sum(F,1);
+        F(isinf(F)) = realmax;
+    end
+%     F = sum(F,1);
+%         F(isinf(F)) = realmax;
     
     
-    % update paras for next iter
+    % update paras for next 
     z = z + alpha.*F';
 %     phi = z(1:ninfo);
 %     gamma = z(ninfo+1:end);
