@@ -6,7 +6,7 @@ t = 1000; % number of period
 info = cell([1 t]);
 Nt = []; % list to store applicants number
 alpha = 0.001; % step size / learning rate
-c = 0.1; % interest rate
+c = 1.1; % interest rate
 % eta = % -1 or c
 
 Rbar = 0; % Rbar
