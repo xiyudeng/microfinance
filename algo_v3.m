@@ -82,6 +82,7 @@ for i = 1:t
     del_pi(del_pi == inf) = realmax;
     pie(pie == 0) = realmin;
 
+    Rbar = sum(R_cum)/sum(Nt);
     F = ((R - Rbar).*(del_pi./pie))/N;
         Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
     % fix the  NaN problem
@@ -104,7 +105,6 @@ for i = 1:t
 %     phi = z(1:ninfo);
 %     gamma = z(ninfo+1:end);
     phi = z;
-    Rbar = sum(R_cum)/sum(Nt);
 
     R_cum(i) = sum(R);
 end
