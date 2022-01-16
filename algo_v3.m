@@ -19,6 +19,7 @@ phi = 0.1*ones([ninfo,1]);
 z = phi;
 phis = [];
 R_cum = zeros([t,1]);
+randR_cum = zeros([t,1]);
 ratioAs = [];
 
 %% for each period
@@ -64,6 +65,7 @@ for i = 1:t
     info{1,i}.ratioA = ratioA;
     ratioAs = [ratioAs;ratioA];
 
+
     % calculate return & get profit
     p = returned_prob(s);  % probability to return the money with interest c
     % random varialbe to decide if applicant return/fail
@@ -73,6 +75,15 @@ for i = 1:t
     R(A == 1 & return_varialbe < p) = 1+c;
     R(A == 1 & return_varialbe >= p) = -1;
     info{1,i}.R = R;
+
+    % random choose action
+    randAid = randsample([1:N],sum(A));
+    randA = zeros(size(A));
+    randA(randAid) = 1;
+    randR(randA == 1 & return_varialbe < p) = 1+c;
+    randR(randA == 1 & return_varialbe >= p) = -1;
+    info{1,i}.randR = randR;
+
     
     % index of the accepted applications
     Aid = find(A == 1); 
@@ -107,13 +118,14 @@ for i = 1:t
     phi = z;
 
     R_cum(i) = sum(R);
+    randR_cum(i) = sum(randR);
 end
 
 figure(1)
 plot(R_cum);hold on
-plot(zeros(t,1),'r--')
+plot(randR_cum,'r--')
 xlabel('t');
-ylabel('R_cum');
+ylabel('cumR');
 title('rewards vs time')
 
 
