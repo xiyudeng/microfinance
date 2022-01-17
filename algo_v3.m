@@ -76,7 +76,7 @@ for i = 1:t
     R(A == 1 & return_varialbe >= p) = -1;
     info{1,i}.R = R;
 
-    A_1 = (p > (1/(1+c));
+%     A_1 = (p > (1/(1+c));
 
     % random choose action
     randAid = randsample([1:N],sum(A));
