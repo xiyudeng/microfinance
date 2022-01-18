@@ -120,9 +120,7 @@ for i = 1:t
     
     % update paras for next 
     phi = phi + alpha.*F';
-    if phi > 1
-        phi = 1;
-    end
+    phi(phi>1.2) = 1.2;
 
     R_cum(i) = sum(R);
     randR_cum(i) = sum(randR);
