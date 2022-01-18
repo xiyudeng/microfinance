@@ -9,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 
 Rbar = 0; % Rbar
-ninfo = 5; % number of information for each applicat (ninfo entries in s)
+ninfo = 2; % number of information for each applicat (ninfo entries in s)
 
 % control parameters
 phi = 0.1*ones([ninfo,1]);
