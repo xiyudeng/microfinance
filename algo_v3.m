@@ -20,10 +20,8 @@ randR_cum = zeros([t,1]);
 R_avg = zeros([t,1]);
 randR_avg = zeros([t,1]);
 ratioAs = [];
-Rbars = Rbar;
-delpie = [];
-Ftests = [];
-Fs = [];
+bank_ratioAs = [];
+
 
 %% for each time step
 for i = 1:t
@@ -63,7 +61,6 @@ for i = 1:t
     info{1,i}.numA = sum(A);
     ratioA = info{1,i}.numA/N;
     info{1,i}.ratioA = ratioA;
-    ratioAs = [ratioAs;ratioA];
 
 
     % calculate return & get profit
@@ -76,9 +73,17 @@ for i = 1:t
     R(A == 1 & return_varialbe >= p) = -1;
     info{1,i}.R = R;
 
-%     A_1 = (p > (1/(1+c));
+    % bank choosing strategy
+    bankA = ((p - (1/(1+c))) > 0);
+    bankR = zeros([N,1]);
+    bankR(bankA == 1 & return_varialbe < p) = 1+c;
+    bankR(bankA == 1 & return_varialbe >= p) = -1;
+    info{1,i}.bankR = bankR;
+    bank_ratioA = sum(bankA)/N;
+    ratioAs = [ratioAs;ratioA];
+    bank_ratioAs = [bank_ratioAs;bank_ratioA];
 
-    % random choose action
+    % random choosing action
     randAid = randsample([1:N],sum(A));
     randA = zeros(size(A));
     randA(randAid) = 1;
@@ -96,13 +101,9 @@ for i = 1:t
 %     pie(pie == 0) = realmin;
 
     Rbar = sum(R_cum)/sum(Nt);
-%     Rbar = sum(R_cum)/i;
 
     
     F = ((R - Rbar).*del_pi./pie)/N;
-%     F = (mean(R - Rbar) * mean(del_pi./pie/N));   
-%     F = mean(F);
-
         Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
     
     % fix the  NaN problem
@@ -124,18 +125,24 @@ for i = 1:t
 
     R_cum(i) = sum(R);
     randR_cum(i) = sum(randR);
+    bankR_cum(i) = sum(bankR);
     
     R_avg(i) = R_cum(i)/N;
     randR_avg(i) = randR_cum(i)/N;
+    bankR_avg(i) = bankR_cum(i)/N;
+
+
 end
 
 %% plots
 figure(1)
 subplot(3,1,1);
 plot(R_avg);hold on
-plot(randR_avg,'r')
+plot(randR_avg,'r');
+plot(bankR_avg,'g');
 xlabel('t');
 ylabel('cumR');
+legend('Gradients','Random','Standard');
 title('rewards vs time')
 
 
@@ -149,7 +156,9 @@ title('\phi vs time')
 
 % figure(3)
 subplot(3,1,3);
-plot(ratioAs);
+plot(ratioAs);hold on
+plot(bank_ratioAs,'g');
+legend('Gradients & Random', 'Standard');
 xlabel('t');
 ylabel('ratioA');
 title('ratioA vs time')
