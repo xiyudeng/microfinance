@@ -9,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 
 Rbar = 0; % Rbar
-ninfo = 1; % number of information for each applicat (ninfo entries in s)
+ninfo = 5; % number of information for each applicat (ninfo entries in s)
 
 % control parameters
 phi = 0.1*ones([ninfo,1]);
@@ -33,7 +33,7 @@ for i = 1:t
     info{1,i}.Nt = N; % N applicants
 
     % Personal information: N x ninfo
-    s = random_apc_info(N);
+    s = random_apc_info(N, ninfo);
     info{1,i}.s = s;
 
 
@@ -64,7 +64,7 @@ for i = 1:t
 
 
     % calculate return & get profit
-    p = returned_prob(s);  % probability to return the money with interest c
+    p = returned_prob(s, ninfo);  % probability to return the money with interest c
     % random varialbe to decide if applicant return/fail
     return_varialbe = rand(N,1);
     info{1,i}.p = p;
@@ -164,7 +164,7 @@ ylabel('ratioA');
 title('ratioA vs time')
 
 %%
-function apcs_info = random_apc_info(n_apcs)
+function apcs_info = random_apc_info(n_apcs, ninfo)
 %     % apcs_info: n_apcs * ninfo
 %     % credit history s1: 1(bad) -> 4(good)
 %     s1 = randi([0 4],n_apcs,1); 
@@ -177,7 +177,7 @@ function apcs_info = random_apc_info(n_apcs)
 %     % existing debt s5: 1(have debt) -> 4(no debt)
 %     s5 = randi([0 4],n_apcs,1); 
 
-    apcs_info = randi([0 4],n_apcs,1);
+    apcs_info = randi([0 4],n_apcs,ninfo);
 end
 
 %% compute partial pi(probability) over partial z
@@ -204,8 +204,8 @@ function del_pi = partial_pi_partial_z(s,phi,Aid,ninfo,N)
 end
 
 %%
-function p = returned_prob(s)
+function p = returned_prob(s,ninfo)
     % calculate the probability
-    p = sum(s,2) ./ 4;
+    p = sum(s,2) ./ (4*ninfo);
 %     p = sum(s,2);
 end
