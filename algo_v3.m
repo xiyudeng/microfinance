@@ -13,6 +13,7 @@ ninfo = 2; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = [];
+eps_arr = [];
 eps = 0.1*ones([ninfo,1]);
 z = [phi;eps];
 
@@ -39,9 +40,10 @@ for i = 1:t
     % calculate pie
     info{1,i}.phi = phi;
     phis = [phis;phi];
-    s_eps = s + eps'; s_eps(isnan(s_eps)) = 0;
+    eps_arr = [eps_arr;eps];
+    s_phi = s + phi'; s_phi(isnan(s_phi)) = 0;
 
-    theta1 = s_eps * phi(:); % Nx1
+    theta1 = s_phi * eps(:); % Nx1
 
 %     theta0 = s * gamma(:); % Nx1
 
@@ -95,7 +97,6 @@ for i = 1:t
     % index of the accepted applications
     Aid = find(A == 1); 
     del_pi = partial_pi_partial_z(z,s,phi,Aid,ninfo,N);
-  disp(size(del_pi));
 %     del_pi(del_pi == 0) = realmin;
 %     del_pi(del_pi == inf) = realmax;
 %     pie(pie == 0) = realmin;
@@ -118,7 +119,6 @@ for i = 1:t
         F(isinf(F)) = realmax;
     end
     
-    disp(size(F));
     % update paras for next
     z = z + alpha.*F';
     phi = z(1:ninfo);
@@ -148,24 +148,22 @@ ylabel('cumR');
 legend('Gradients','Random','Standard');
 title('rewards vs time')
 
-
-% figure(2)
-% subplot(3,1,1);
+figure(2)
+subplot(3,1,1);
 subplot(3,1,2);
 plot(phis);
 xlabel('t');
 ylabel('\phi');
 title('\phi vs time')
 
-% figure(3)
+figure(3)
 subplot(3,1,3);
 plot(ratioAs);hold on
 plot(bank_ratioAs,'g');
 legend('Gradients & Random', 'Standard');
 xlabel('t');
 ylabel('ratioA');
-title('ratioA vs time')
-
+title('ratioA vs time');
 %%
 function apcs_info = random_apc_info(n_apcs, ninfo, nempty)
 %     % apcs_info: n_apcs * ninfo
@@ -179,8 +177,14 @@ function apcs_info = random_apc_info(n_apcs, ninfo, nempty)
 %     s4 = randi([0 4],n_apcs,1); 
 %     % existing debt s5: 1(have debt) -> 4(no debt)
 %     s5 = randi([0 4],n_apcs,1); 
-
+    %disp(size(n_apcs));
+    %apcs_info1 = zeros([20000,1]);
+    %apcs_info2 = 4*ones([20000,1]);
+    %apcs_info = [apcs_info1 apcs_info2]
+    %apcs_info = 4*ones([20000,1]);
     apcs_info = randi([0 4],n_apcs,ninfo);
+    disp(size(apcs_info));
+    %apcs_info = [apcs_info1 apcs_info2]
     emty_idx = randi([1,numel(apcs_info(:))],nempty,1);
     apcs_info(emty_idx) = NaN;
 end
@@ -193,8 +197,8 @@ function del_pi = partial_pi_partial_z(z,s,phi,Aid,ninfo,N)
 
     del_pi = zeros([N, 2*ninfo]);
     
-    s_eps = s+eps'; s_eps(isnan(s_eps)) = 0; 
-    tmp1 = s_eps.*phi'; 
+    s_phi = s+phi'; s_phi(isnan(s_phi)) = 0; 
+    tmp1 = s_phi.*eps'; 
 %     tmp0 = s.*gamma'; 
     exp_t1 = exp(tmp1);
         exp_t1(exp_t1==0) = realmin; exp_t1(isinf(exp_t1)) = realmax;
@@ -204,13 +208,13 @@ function del_pi = partial_pi_partial_z(z,s,phi,Aid,ninfo,N)
     exp_sqr = exp_plus.^2;
         exp_sqr(exp_sqr==0) = realmin; exp_sqr(isinf(exp_sqr)) = realmax;
     
-    del_pi(Aid,1:ninfo) = ((exp_t1(Aid,:).*s_eps(Aid,:).*exp_plus(Aid,:))...
-        + ((exp_t1(Aid,:).^2).*s_eps(Aid,:)))./exp_sqr(Aid,:);
-    del_pi(Aid,ninfo+1:end) = ((exp_t1(Aid,:).*phi'.*exp_plus(Aid,:))...
-        + ((exp_t1(Aid,:).^2).*phi'))./exp_sqr(Aid,:);
-    del_pi(~Aid,1:ninfo) = (exp_t1(~Aid,:).*s_eps(~Aid,:))...
+    del_pi(Aid,1:ninfo) = ((exp_t1(Aid,:).*eps'.*exp_plus(Aid,:))...
+        + ((exp_t1(Aid,:).^2).*eps'))./exp_sqr(Aid,:);
+    del_pi(Aid,ninfo+1:end) = ((exp_t1(Aid,:).*s_phi(Aid,:).*exp_plus(Aid,:))...
+        + ((exp_t1(Aid,:).^2).*s_phi(Aid,:)))./exp_sqr(Aid,:);
+    del_pi(~Aid,1:ninfo) = (exp_t1(~Aid,:).*eps')...
         ./ exp_sqr(~Aid,:);
-    del_pi(~Aid,ninfo+1:end) = (exp_t1(~Aid,:).*phi')./exp_sqr(~Aid,:);
+    del_pi(~Aid,ninfo+1:end) = (exp_t1(~Aid,:).*s_phi(~Aid,:))./exp_sqr(~Aid,:);
     
         del_pi(del_pi==0) = realmin; del_pi(isinf(del_pi)) = realmax;
 end
