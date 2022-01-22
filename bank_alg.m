@@ -19,7 +19,7 @@ function R_avg = bank_alg(N,t,c, ninfo, nempty)
             diff_s = setdiff(unique(s,'rows'),s_database(:,1:ninfo),'rows'); 
             % new entry: not all entries in s are in s_database
             if (~isempty(diff_s)) 
-                s_database = [s_database; [diff_s, zeros(length(diff_s),1), zeros(length(diff_s),1),phat*ones(length(diff_s),1)]]; % set prob as initial phat
+                s_database = [s_database; [diff_s, zeros(size(diff_s,1),1), zeros(size(diff_s,1),1),phat*ones(size(diff_s,1),1)]]; % set prob as initial phat
             end
         end
 
