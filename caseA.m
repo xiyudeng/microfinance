@@ -9,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 nempty = 0;
 Rbar = 0; % Rbar
-ninfo = 1000; % number of information for each applicat (ninfo entries in s)
+ninfo = 100; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = [];
@@ -19,11 +19,9 @@ z = [phi;eps];
 F = zeros(1,2*ninfo);
 numA = [];
 
-
 R_cum = zeros([t,1]);
 R_avg = zeros([t,1]);
 ratioAs = [];
-
 
 % randR_cum = zeros([t,1]);
 % randR_avg = zeros([t,1]);
@@ -51,13 +49,15 @@ for i = 1:t
     % calculate pie
     phis = [phis;phi];
     eps_arr = [eps_arr;eps];
-    s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
 
+    s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
     Q = s_phi + repmat(eps',N,1); % Nxninfo
+%     s_eps = s+eps';
+%     Q = s_eps*phi;
 
 
     % policy pi
-    exp_Q = sum(exp(Q),2);
+    exp_Q = mean(exp(Q),2);
 %     exp_Q = exp(Q);
     exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
 
@@ -69,7 +69,6 @@ for i = 1:t
     A = (decision_varialbe < mean(pie,2));
     ratioA = sum(A)/N;
     numA = [numA,sum(A)];
-
 
 
     % calculate return & get profit
@@ -87,7 +86,7 @@ for i = 1:t
 %     bank1R(bank1A == 1 & return_varialbe >= p) = -1;
 
 %     bank1_ratioA = sum(bank1A)/N;
-%     ratioAs = [ratioAs;ratioA];
+    ratioAs = [ratioAs;ratioA];
 %     bank1_ratioAs = [bank1_ratioAs;bank1_ratioA];
 
     % random choosing action
@@ -100,20 +99,24 @@ for i = 1:t
 %     [bankR_avg(i), bank_ratioAs(i), s_database] = bank_alg(i,N,s,s_database,c,p,ninfo,phat);
 
 
-
     % index of the accepted applications
     Aid = find(A == 1);
 %     del_pi = partial_pi_partial_Q(z,s,phi,Aid,ninfo,N);
     del_pi = partial_pi_partial_Q(s,Q,Aid,ninfo,N);
-    %     del_pi(del_pi == 0) = realmin;
-    %     del_pi(del_pi == inf) = realmax;
-    %     pie(pie == 0) = realmin;
+        del_pi(del_pi == 0) = realmin;
+        del_pi(del_pi == inf) = realmax;
+        pie(pie == 0) = realmin;
 
     Rbar = sum(R_cum)/sum(Nt);
 
 
 %     F = F + (1/i) * (1/N) * sum(del_pi,1);
-    F = (R - Rbar)'*(del_pi./pie);
+%     F = F+(1/i)*(R - Rbar)'*(del_pi./pie);
+    F = F+(1/i)*pie\((R - Rbar).*del_pi);
+    Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
+    if sum(isnan(F))
+       disp('nan');
+    end
 %     disp(size(F));
 
     % update paras for next
@@ -145,7 +148,7 @@ plot(numA,R_avg);hold on
 % plot(randR_avg,'r');
 % plot(bank1R_avg,'g');
 % plot(bankR_avg,'m');
-xlabel('t');
+xlabel('numA');
 ylabel('cumR');
 legend('Gradients','Random','Standard','Standard new');
 title('rewards vs time')
@@ -267,7 +270,7 @@ del_pi = zeros([N, 2*ninfo]);
 % s_phi = s+phi'; s_phi(isnan(s_phi)) = 0;
 % tmp1 = s_phi.*eps';
 %     tmp0 = s.*gamma';
-exp_Q = exp(Q);
+exp_Q = exp(Q); % Q: Nxninfo
 exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
 %     exp_t0 = exp(tmp0);
 exp_t0 = 1;
