@@ -9,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 nempty = 0;
 Rbar = 0; % Rbar
-ninfo = 100; % number of information for each applicat (ninfo entries in s)
+ninfo = 1000; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = [];
@@ -50,10 +50,10 @@ for i = 1:t
     phis = [phis;phi];
     eps_arr = [eps_arr;eps];
 
-    s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
-    Q = s_phi + repmat(eps',N,1); % Nxninfo
-%     s_eps = s+eps';
-%     Q = s_eps*phi;
+%     s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
+%     Q = s_phi + eps'; % Nxninfo
+    s_phi = mean(s,2)*phi';
+    Q = s_phi + eps';
 
 
     % policy pi
@@ -111,8 +111,8 @@ for i = 1:t
 
 
 %     F = F + (1/i) * (1/N) * sum(del_pi,1);
-%     F = F+(1/i)*(R - Rbar)'*(del_pi./pie);
-    F = F+(1/i)*pie\((R - Rbar).*del_pi);
+    F = F+(1/i)*(R - Rbar)'*(del_pi./pie);
+%     F = F+(1/i)*pie\((R - Rbar).*del_pi);
     Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
     if sum(isnan(F))
        disp('nan');
