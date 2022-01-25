@@ -1,5 +1,6 @@
 % micro-credit caseB
 clear all; close all; clc;
+disp('caseB begin...')
 
 %% initialization
 t = 1000; % number of period
