@@ -1,5 +1,6 @@
 % micro-credit caseA
 clear all; close all; clc;
+disp('caseA begin...')
 
 %% initialization
 t = 1000; % number of period
@@ -8,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 nempty = 0;
 Rbar = 0; % Rbar
-ninfo = 100; % number of information for each applicat (ninfo entries in s)
+ninfo = 1000; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = [];
@@ -16,6 +17,8 @@ eps = 0.1*ones([ninfo,1]);
 eps_arr = [];
 z = [phi;eps];
 F = zeros(1,2*ninfo);
+numA = [];
+
 
 R_cum = zeros([t,1]);
 R_avg = zeros([t,1]);
@@ -54,7 +57,8 @@ for i = 1:t
 
 
     % policy pi
-    exp_Q = sum(exp(Q),2);
+%     exp_Q = sum(exp(Q),2);
+    exp_Q = exp(Q);
     exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
 
     pie = exp_Q./(1+exp_Q);
@@ -64,6 +68,7 @@ for i = 1:t
     decision_varialbe = rand(N,1);
     A = (decision_varialbe < mean(pie,2));
     ratioA = sum(A)/N;
+    numA = [numA,sum(A)];
 
 
 
@@ -107,7 +112,9 @@ for i = 1:t
     Rbar = sum(R_cum)/sum(Nt);
 
 
-    F = F + (1/i) * (1/N) * sum(del_pi,1);      
+%     F = F + (1/i) * (1/N) * sum(del_pi,1);
+    F = (R - Rbar).*del_pi./pie;
+    disp(size(F));
 
     % update paras for next
     z = z + alpha.*F';
@@ -129,11 +136,12 @@ for i = 1:t
 
 
 end
+numA = cumsum(numA);
 
 %% plots
 figure(1)
 subplot(3,1,1);
-plot(R_avg);hold on
+plot(numA,R_avg);hold on
 % plot(randR_avg,'r');
 % plot(bank1R_avg,'g');
 % plot(bankR_avg,'m');
