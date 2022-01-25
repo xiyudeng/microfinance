@@ -59,7 +59,7 @@ for i = 1:t
     exp_Q = sum(exp(Q),2);
     exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
 
-    pie = exp_Q./(1+exp_Q);
+    pie = 2*exp_Q./(1+exp_Q)-1;
 
     % make decision
     % random varialbe to decide if bank lend/reject applicants
@@ -110,7 +110,8 @@ for i = 1:t
     Rbar = sum(R_cum)/sum(Nt);
 
 
-    F = F + (1/i) * (1/N) * sum(del_pi,1);      
+%     F = F + (1/i) * (1/N) * sum(del_pi,1); 
+    F = (R - Rbar)'*(del_pi./pie);
 
     % update paras for next
     z = z + alpha.*F';
