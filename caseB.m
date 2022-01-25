@@ -55,7 +55,7 @@ for i = 1:t
     Q = s_phi + repmat(eps',N,1); % Nxninfo
 
     % policy pi
-    pie = 1 - sum(exp(-Q),2); 
+    pie = (2*sum(exp(-Q),2))./(1+sum(exp(-Q),2))-1; 
 
     % make decision
     % random varialbe to decide if bank lend/reject applicants
@@ -106,7 +106,8 @@ for i = 1:t
     Rbar = sum(R_cum)/sum(Nt);
 
    
-    F = F + (1/i) * (1/N) * sum(del_pi,1);
+% %     F = F + (1/i) * (1/N) * sum(del_pi,1);
+    F = (R - Rbar)'*(del_pi./pie);
 
     % update paras for next
     z = z + alpha.*F';
