@@ -57,8 +57,8 @@ for i = 1:t
 
 
     % policy pi
-%     exp_Q = sum(exp(Q),2);
-    exp_Q = exp(Q);
+    exp_Q = sum(exp(Q),2);
+%     exp_Q = exp(Q);
     exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
 
     pie = exp_Q./(1+exp_Q);
@@ -113,8 +113,8 @@ for i = 1:t
 
 
 %     F = F + (1/i) * (1/N) * sum(del_pi,1);
-    F = (R - Rbar).*del_pi./pie;
-    disp(size(F));
+    F = (R - Rbar)'*(del_pi./pie);
+%     disp(size(F));
 
     % update paras for next
     z = z + alpha.*F';
