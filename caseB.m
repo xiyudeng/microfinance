@@ -9,7 +9,7 @@ alpha = 0.001; % step size / learning rate
 c = 0.1; % interest rate
 nempty = 0;
 Rbar = 0; % Rbar
-ninfo = 1000; % number of information for each applicat (ninfo entries in s)
+ninfo = 100; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = [];
@@ -55,7 +55,7 @@ for i = 1:t
     Q = s_phi + repmat(eps',N,1); % Nxninfo
 
     % policy pi
-    pie = (2*sum(exp(-Q),2))./(1+sum(exp(-Q),2))-1; 
+    pie = 1-sum(exp(-Q),2);
 
     % make decision
     % random varialbe to decide if bank lend/reject applicants
