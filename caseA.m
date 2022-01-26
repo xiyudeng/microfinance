@@ -35,7 +35,6 @@ ratioAs = [];
 %% for each time step
 for i = 1:t
     % follow up progress
-    disp(i);
     if mod(i,100) == 0
         disp(i);
     end
@@ -53,8 +52,6 @@ for i = 1:t
     
     s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
     Q = s_phi + repmat(eps',N,1); % Nxninfo
-    disp(size(s_phi));
-    disp(size(Q));
 %     s_eps = s+eps';
 %     Q = s_eps*phi;
 
@@ -120,7 +117,6 @@ for i = 1:t
     if sum(isnan(F))
        disp('nan');
     end
-%     disp(size(F));
 
     % update paras for next
     z = z + alpha.*F';
