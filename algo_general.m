@@ -217,6 +217,7 @@ del_pi(Aid,ninfo+1:end) = par_del(Aid,:);
 del_pi(~Aid,1:ninfo) = -1.*s(~Aid,:).*par_del(~Aid,:);
 del_pi(~Aid,ninfo+1:end) = -1.*par_del(~Aid,:);
     del_pi(del_pi==0) = realmin; del_pi(isinf(del_pi)) = realmax;
+    del_pi(isnan(del_pi)) = realmin;
     
 end
 
