@@ -35,6 +35,7 @@ ratioAs = [];
 %% for each time step
 for i = 1:t
     % follow up progress
+    disp(i);
     if mod(i,100) == 0
         disp(i);
     end
@@ -49,9 +50,11 @@ for i = 1:t
     % calculate pie
     phis = [phis;phi];
     eps_arr = [eps_arr;eps];
-
+    
     s_phi = s .* repmat(phi',N,1); s_phi(isnan(s_phi)) = 0;
     Q = s_phi + repmat(eps',N,1); % Nxninfo
+    disp(size(s_phi));
+    disp(size(Q));
 %     s_eps = s+eps';
 %     Q = s_eps*phi;
 
@@ -124,7 +127,7 @@ for i = 1:t
     phi = z(1:ninfo);
     eps = z(ninfo+1:end);
 
-%     phi(phi>1.2) = 1.2;
+    phi(phi>0.8) = 0.8;
 
     %%
 
@@ -189,6 +192,7 @@ function apcs_info = random_apc_info(n_apcs, ninfo, nempty)
 %apcs_info = [apcs_info1 apcs_info2]
 %apcs_info = 4*ones([20000,1]);
 apcs_info = randi([0 4],n_apcs,ninfo);
+%apcs_info = 4*zeros([20000,1]);
 %     disp(size(apcs_info));
 %apcs_info = [apcs_info1 apcs_info2]
 emty_idx = randi([1,numel(apcs_info(:))],nempty,1);
