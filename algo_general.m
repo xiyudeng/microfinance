@@ -2,17 +2,18 @@
 clear all; close all; clc;
 rng(1)
 %% case option
-L_form = 'C';
+L_form = 'B';
 
 %% initialization
 t = 1000; % number of period
 Nt = zeros(t,1); % list to store applicants number
 alpha = 0.01; % step size / learning rate
+d_alpha = alpha/t;
 c = 0.1; % interest rate
 e = 1;
-nempty = 0;
+nempty = 100;
 Rbar = 0; % Rbar
-ninfo = 10; % number of information for each applicat (ninfo entries in s)
+ninfo = 5; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = zeros(t,ninfo);
@@ -46,7 +47,7 @@ for i = 1:t
     eps_arr(i,:) = eps';
 
     s_phi = s.*phi';
-    Q = s_phi + eps'; s_phi(isnan(s_phi)) = 0;
+    Q = s_phi + eps'; Q(isnan(Q)) = 0;
 
 
     % policy pi
@@ -131,40 +132,50 @@ for i = 1:t
 %     randR_avg(i) = randR_cum(i)/N;
 %     bank1R_avg(i) = bank1R_cum(i)/N;
     
-
+alpha = alpha - d_alpha;
+% alpha = alpha/sqrt(i);
 
 end
 numA = cumsum(numA);
 
 %% plots
-figure(1)
+figure('Color','w')
 % subplot(3,1,1);
-plot(R_cum);hold on
+plot(R_cum)%;hold on
 % plot(randR_avg,'r');
 % plot(bank1R_avg,'g');
 % plot(bankR_avg,'m');
-xlabel('numA');
-ylabel('cumR');
+xlabel('time');
+ylabel('cumulative utility');
 % legend('Gradients','Random','Standard','Standard new');
-title('rewards vs time')
+% title('rewards vs time')
 
-figure(2)
+figure('Color','w')
 % subplot(3,1,1);
 % subplot(3,1,2);
 plot(phis);
-xlabel('t');
+xlabel('time');
 ylabel('\phi');
-title('\phi vs time')
+% title('\phi vs time')
 
-figure(3)
+figure('Color','w')
+% subplot(3,1,1);
+% subplot(3,1,2);
+plot(eps_arr);
+xlabel('time');
+ylabel('\epsilon');
+% title('\phi vs time')
+
+figure('Color','w')
 % subplot(3,1,3);
-plot(ratioAs);hold on
+plot(ratioAs)%;hold on
 % plot(bank1_ratioAs,'g');
 % plot(bank_ratioAs,'m');
 % legend('Gradients & Random', 'Standard');
-xlabel('t');
+xlabel('time');
 ylabel('ratioA');
-title('ratioA vs time');
+% title('ratioA vs time');
+
 %%
 function apcs_info = random_apc_info(n_apcs, ninfo, nempty)
 %apcs_info1 = zeros([20000,1]);
