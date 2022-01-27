@@ -2,7 +2,7 @@
 clear all; close all; clc;
 rng(1)
 %% case option
-L_form = 'B';
+L_form = 'A';
 
 %% initialization
 t = 1000; % number of period
@@ -13,7 +13,7 @@ c = 0.1; % interest rate
 e = 1;
 nempty = 100;
 Rbar = 0; % Rbar
-ninfo = 5; % number of information for each applicat (ninfo entries in s)
+ninfo = 100; % number of information for each applicat (ninfo entries in s)
 % control parameters
 phi = 0.1*ones([ninfo,1]);
 phis = zeros(t,ninfo);
@@ -33,7 +33,7 @@ for i = 1:t
 %     if mod(i,100) == 0
 %         disp(i);
 %     end
-    workbar(i/t)
+    waitbar(i/t)
 
     % generate applicants number & info
     N = 20000; %randi([10000,20000],1);
@@ -51,7 +51,7 @@ for i = 1:t
 
 
     % policy pi
-    exp_Q = exp(sum((Q),2));
+    exp_Q = exp(mean((Q),2));
         exp_Q(exp_Q==0) = realmin; exp_Q(isinf(exp_Q)) = realmax;
             
     switch L_form
@@ -141,7 +141,7 @@ numA = cumsum(numA);
 %% plots
 figure('Color','w')
 % subplot(3,1,1);
-plot(R_cum)%;hold on
+plot(numA,movmean(R_cum,100))%;hold on
 % plot(randR_avg,'r');
 % plot(bank1R_avg,'g');
 % plot(bankR_avg,'m');
