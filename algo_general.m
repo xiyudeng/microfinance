@@ -60,6 +60,8 @@ for i = 1:t
 
     % calculate return & get profit
     p = returned_prob(s, ninfo);  % probability to return the money with interest c
+    % random varialbe to decide if bank lend/reject applicants
+    decision_varialbe = rand(N,1);
     switch L_form
         case 'A'
             pie = exp_Q./(1+exp_Q);
@@ -68,13 +70,17 @@ for i = 1:t
         case 'C'
             pie = (2.*exp_Q./(1+exp_Q))-1;
         case 'S'
-            [bankR_avg(i), bank_ratioAs(i), s_database] = bank_alg(i,N,s,s_database,c,p,ninfo,phat);
+            bank1A = ((p - (1/(1+c))) > 0);
+            bank1R = zeros([N,1]);
+            bank1R(bank1A == 1 & decision_varialbe < p) = c+e;
+            bank1R(bank1A == 1 & decision_varialbe >= p) = -1+e;
+            bank1_ratioA = sum(bank1A)/N;
+            R_cum(i) = sum(bank1R);
+%             [bankR_avg(i), bank_ratioAs(i), s_database] = bank_alg(i,N,s,s_database,c,p,ninfo,phat);
     end
 
     if L_form ~= 'S'
-        % make decision
-        % random varialbe to decide if bank lend/reject applicants
-        decision_varialbe = rand(N,1);
+        % make decisions
         A = (decision_varialbe < pie);
         ratioA = sum(A)/N;
         numA(i) = sum(A);
@@ -84,26 +90,15 @@ for i = 1:t
         R = zeros([N,1]);
         R(A == 1 & return_varialbe < p) = c+e;
         R(A == 1 & return_varialbe >= p) = -1+e;
-
-        % bank1 choosing strategy
-        %     bank1A = ((p - (1/(1+c))) > 0);
-        %     bank1R = zeros([N,1]);
-        %     bank1R(bank1A == 1 & return_varialbe < p) = 1+c;
-        %     bank1R(bank1A == 1 & return_varialbe >= p) = -1;
-
-        %     bank1_ratioA = sum(bank1A)/N;
         ratioAs(i) = ratioA;
         %     bank1_ratioAs = [bank1_ratioAs;bank1_ratioA];
 
-        % random choosing action
-        %     randAid = randsample(1:N,sum(A));
-        %     randA = zeros(size(A));
-        %     randA(randAid) = 1;
-        %     randR(randA == 1 & return_varialbe < p) = 1+c;
-        %     randR(randA == 1 & return_varialbe >= p) = -1;
-
-        %     [bankR_avg(i), bank_ratioAs(i), s_database] = bank_alg(i,N,s,s_database,c,p,ninfo,phat);
-
+%         random choosing action
+            randAid = randsample(1:N,sum(A));
+            randA = zeros(size(A));
+            randA(randAid) = 1;
+            randR(randA == 1 & return_varialbe < p) = 1+c;
+            randR(randA == 1 & return_varialbe >= p) = -1;
 
         % index of the accepted applications
         Aid = find(A == 1);
@@ -131,7 +126,7 @@ for i = 1:t
         %%
 
         R_cum(i) = sum(R);
-        %     randR_cum(i) = sum(randR);
+        randR_cum(i) = sum(randR);
         %     bank1R_cum(i) = sum(bank1R);
 
         R_avg(i) = R_cum(i)/N;
@@ -150,6 +145,18 @@ figure('Color','w')
 % subplot(3,1,1);
 plot(numA,movmean(R_cum,100))%;hold on
 plot(movmean(R_cum,100))
+% plot(randR_avg,'r');
+% plot(bank1R_avg,'g');
+% plot(bankR_avg,'m');
+xlabel('time');
+ylabel('cumulative utility');
+% legend('Gradients','Random','Standard','Standard new');
+% title('rewards vs time')
+
+figure('Color','w')
+% subplot(3,1,1);
+plot(numA,randR_cum)%;hold on
+% plot(movmean(R_cum,100))
 % plot(randR_avg,'r');
 % plot(bank1R_avg,'g');
 % plot(bankR_avg,'m');
