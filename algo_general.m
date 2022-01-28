@@ -70,7 +70,7 @@ for i = 1:t
         case 'C'
             pie = (2.*exp_Q./(1+exp_Q))-1;
         case 'S'
-            bank1A = ((p - (1/(1+c))) > 0);
+            bank1A = ((p - (1/(2*(c+e)))) > 0);
             bank1R = zeros([N,1]);
             bank1R(bank1A == 1 & decision_varialbe < p) = c+e;
             bank1R(bank1A == 1 & decision_varialbe >= p) = -1+e;
@@ -153,17 +153,14 @@ ylabel('cumulative utility');
 % legend('Gradients','Random','Standard','Standard new');
 % title('rewards vs time')
 
+if exist('randR_cum')
 figure('Color','w')
-% subplot(3,1,1);
 plot(numA,randR_cum)%;hold on
-% plot(movmean(R_cum,100))
-% plot(randR_avg,'r');
-% plot(bank1R_avg,'g');
-% plot(bankR_avg,'m');
 xlabel('time');
-ylabel('cumulative utility');
-% legend('Gradients','Random','Standard','Standard new');
-% title('rewards vs time')
+ylabel('cumulative utility: random select');
+end
+
+
 
 figure('Color','w')
 % subplot(3,1,1);
