@@ -1,6 +1,5 @@
-% micro-credit caseA
 clear all; close all; clc;
-% rng(1)
+rng(1)
 %% case option
 
 % form of pi
@@ -8,18 +7,18 @@ L_form = 'B';
 k = 1;
 
 % reward rule
-c = 0; % interest rate
-e = 0.05; % encouragement
+c = 0.2; % interest rate
+e = 0.2; % encouragement
 
 % information parameters
 ninfo = 100; % number of information for each applicat (ninfo entries in s)
-nempty = 0*20000; % number of empty entries
+nempty = 0; % number of empty entries
 
 %% MS parameters
 
 nPartcl = 10;            % population size
 nkeep = 5;              % number to keep
-MSO_itr = 50;           % multi start iterations
+MSO_itr = 500;           % multi start iterations
 
 %% gradient optimization parameters
 
@@ -34,11 +33,15 @@ Nt = zeros(t,1); % list to store applicants number
 phi = -10 + 20.*rand(ninfo,nPartcl);
 phis = zeros(t,ninfo);
 eps = -10 + 20.*rand(ninfo,nPartcl);
-P = ones([ninfo,1]);
-w = 0;
 eps_arr = zeros(t,ninfo);
 F = zeros(1,2*ninfo);
 Rbar = 0; % Rbar
+
+% perceptron parameters
+P = ones([ninfo,1]);
+w = 0;
+Ps = zeros([ninfo,t]);
+ws = zeros([1,t]);
 
 % initiate average cumulative rewards
 R_cum = zeros([t,1]);
@@ -72,8 +75,8 @@ for t_idx = 1:t
     workbar(t_idx/t)
     
     % generate applicants number & info
-    N = randi([10000,20000],1);
-%     N = 20000;
+%     N = randi([10000,20000],1);
+    N = 20000;
     Nt(t_idx) = N;
 
     % Personal information: N x ninfo
@@ -118,7 +121,7 @@ for t_idx = 1:t
     
     % calculate the decision value
     sP = s; sP(isnan(s)) = 0;
-    OP = sum(sP.*P'+w,2);
+    OP = sum(sP.*P',2)+w;
     
     % making decision
     A_P = (OP > 0);
@@ -143,7 +146,8 @@ for t_idx = 1:t
     w = w - numel(neg_idx);
     P = P + sum(sP(pos_idx,:))';
     w = w + numel(pos_idx);
-    
+    Ps(:,t_idx) = P;
+    ws(t_idx) = w;
     
     %% Proposed Approach
     
@@ -387,6 +391,11 @@ hist(p,100)
 xlabel('p')
 ylabel('freq.')
 
+% figure('Color','w')
+% plot(ws,'r','LineWidth',2)
+% xlabel('time')
+% ylabel('w')
+
 %% function to generate s
 
 function [p,s] = random_apc_info(n_apcs, ninfo, nempty)
@@ -432,6 +441,7 @@ p(p<0.95 & p>0.5) = 1;
 % p(h>10) = 1;
 % p = h./20;
 % p(h>10) = 0.95;
+% p = s>=2;
 
 emty_idx = randi([1,numel(s(:))],nempty,1);
 s(emty_idx) = NaN;
