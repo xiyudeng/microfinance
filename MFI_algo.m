@@ -80,8 +80,8 @@ for t_idx = 1:t
 %     workbar(t_idx/t)
     
     % generate applicants number & info
-    N = randi([10000,20000],1);
-%     N = 20000;
+%     N = randi([10000,20000],1);
+    N = 20000;
     Nt(t_idx) = N;
     nempty = ceil(nempty_prcnt*N*ninfo);
 
@@ -162,7 +162,7 @@ for t_idx = 1:t
         R_sum = zeros(1,nPartcl);
         numA = zeros(1,nPartcl);
         default_num = zeros(1,nPartcl);
-        parfor p_idx = 1:nPartcl
+        for p_idx = 1:nPartcl
 
             % current particle
             phi_now = phi(:,p_idx);
@@ -184,10 +184,11 @@ for t_idx = 1:t
                     pie = exp_Q./(1+exp_Q);
                 case 'B'
                     pie = 1-(1./exp_Q);
-                    pie(pie<0) = 0;
+%                     pie(pie<0) = 0;
                 case 'C'
                     pie = (2.*exp_Q./(1+exp_Q))-1;
             end
+            pie(pie == 0) = realmin;
 
             % make decision
             decision_varialbe = rand(N,1);
@@ -201,9 +202,6 @@ for t_idx = 1:t
             % index of the accepted applications
             Aid = find(A == 1);
             del_pi = partial_pi_partial_Q(s,Q,Aid,ninfo,N,L_form,k);
-                del_pi(del_pi == 0) = realmin;
-                del_pi(del_pi == inf) = realmax;
-                pie(pie == 0) = realmin;
 
             Rbar = sum(R_proposed_cum)/sum(Nt);
 
@@ -276,6 +274,7 @@ for t_idx = 1:t
             case 'C'
                 pie = (2.*exp_Q./(1+exp_Q))-1;
         end
+        pie(pie == 0) = realmin;
 
         % make decision
         decision_varialbe = rand(N,1);
@@ -289,9 +288,6 @@ for t_idx = 1:t
         % index of the accepted applications
         Aid = find(A == 1);
         del_pi = partial_pi_partial_Q(s,Q,Aid,ninfo,N,L_form,k);
-            del_pi(del_pi == 0) = realmin;
-            del_pi(del_pi == inf) = realmax;
-            pie(pie == 0) = realmin;
 
         Rbar = sum(R_proposed_cum)/sum(Nt);
 
@@ -461,8 +457,6 @@ end
 
 del_pi(Aid,1:ninfo) = s(Aid,:).*par_del(Aid,:);
 del_pi(Aid,ninfo+1:end) = par_del(Aid,:);
-del_pi(~Aid,1:ninfo) = -1.*s(~Aid,:).*par_del(~Aid,:);
-del_pi(~Aid,ninfo+1:end) = -1.*par_del(~Aid,:);
     del_pi(del_pi==0) = realmin; del_pi(isinf(del_pi)) = realmax;
     del_pi(isnan(del_pi)) = realmin;
     
