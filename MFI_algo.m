@@ -48,6 +48,10 @@ eps_arr = zeros(t,ninfo);
 P = ones([ninfo,1]);
 w = 0;
 
+% perfect decision parameter
+dec_lim = zeros(t,1); % initial threshold
+dec_lim(2) = 0.5; % second update of the threshold
+
 % initiate average cumulative rewards
 R_proposed_cum = zeros([t,1]);
 R_prfct_cum = zeros(size(R_proposed_cum));
@@ -80,8 +84,8 @@ for t_idx = 1:t
 %     workbar(t_idx/t)
     
     % generate applicants number & info
-%     N = randi([10000,20000],1);
-    N = 20000;
+    N = randi([10000,20000],1);
+%     N = 20000;
     Nt(t_idx) = N;
     nempty = ceil(nempty_prcnt*N*ninfo);
 
@@ -104,13 +108,24 @@ for t_idx = 1:t
 	
     %% perfect decision
     
+    % set threshold
+    if t_idx >= 3
+        % update the threshold
+        dec_lim(t_idx) = dec_lim(t_idx-1) + ...
+            ((R_prfct_mean - R_prfct_mean_prev)/(c+e));
+        R_prfct_mean_prev = R_prfct_mean; % store previous cumulative rewards
+    elseif t_idx == 2
+        R_prfct_mean_prev = R_prfct_mean; % store previous cumulative rewards
+    end
+    
     % making decision
-    A_prfct = (p >= 0.95);
+    A_prfct = (p >= dec_lim(t_idx));
     
     % calculate rewards
     R_prfct = zeros([N,1]);
     R_prfct(A_prfct==1 & return_varialbe < p) = c+e;
     R_prfct(A_prfct==1 & return_varialbe >= p) = -1+e;
+    R_prfct_mean = mean(R_prfct);
     
     % calculate acceptance probability
     numA_prfct(t_idx) = sum(R_prfct>0); % number of acceptance
@@ -162,7 +177,7 @@ for t_idx = 1:t
         R_sum = zeros(1,nPartcl);
         numA = zeros(1,nPartcl);
         default_num = zeros(1,nPartcl);
-        for p_idx = 1:nPartcl
+        parfor p_idx = 1:nPartcl
 
             % current particle
             phi_now = phi(:,p_idx);
@@ -362,6 +377,7 @@ default.all = default_prob_all;
 % compile parameters
 parameters.proposed.phis = phis;
 parameters.proposed.eps = eps_arr;
+parameters.perfect.threshold = dec_lim;
 parameters.perceptron.P = P;
 parameters.perceptron.w = w;
 
