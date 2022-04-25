@@ -1,5 +1,5 @@
-function kiva = preprocessing(kiva)
-
+function kiva = preprocessing(data)
+kiva = data;
 %% categorical -> numerical; NaN -> 0
 % description_languages: categorical, one-hot encoding
 a = kiva(:,{'description_languages'});
@@ -82,7 +82,9 @@ kiva = removevars(kiva,{'delinquent'});
 % kiva.duration(isnan(kiva.duration)) = 0;
 
 % label paid/defaulted
-[status, ~, G] = unique(kiva(:,{'status'}));
-kiva.status = G-1; %0 defaulted 1 paid
+if sum(strcmp('status',kiva.Properties.VariableNames))
+    [status, ~, G] = unique(kiva(:,{'status'}));
+    kiva.status = G-1; %0 defaulted 1 paid
+end
 
 end
