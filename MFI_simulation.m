@@ -6,6 +6,13 @@ if ~rndm
 end
 %% case option
 
+% number of applicants each period
+Nlim = case_option.Nlim; % lower and upper limit
+
+% parameters to generate s and p
+s_a = case_option.s_a;
+p_func = case_option.p_func;
+
 % reward rule
 c = case_option.c; % interest rate
 e = case_option.e; % encouragement
@@ -78,6 +85,7 @@ R_proposed_cum_B = zeros(size(R_proposed_cum_A));
 R_proposed_cum_C = zeros(size(R_proposed_cum_A));
 R_prfct1_cum = zeros(size(R_proposed_cum_A));
 R_prfct2_cum = zeros(size(R_proposed_cum_A));
+R_pred_cum = zeros(size(R_proposed_cum_A));
 R_P_cum = zeros(size(R_proposed_cum_A));
 R_T_cum = zeros(size(R_proposed_cum_A));
 R_svm_cum = zeros(size(R_proposed_cum_A));
@@ -97,6 +105,7 @@ numA_L = zeros(t,1);
 numA_N = zeros(t,1);
 numA_prfct1 = zeros(t,1);
 numA_prfct2 = zeros(t,1);
+numA_pred = zeros(t,1);
 ratioAs_A = zeros(t,1);
 ratioAs_B = zeros(t,1);
 ratioAs_C = zeros(t,1);
@@ -107,6 +116,7 @@ ratioAs_L = zeros(t,1);
 ratioAs_N = zeros(t,1);
 ratioAs_prfct1 = zeros(t,1);
 ratioAs_prfct2 = zeros(t,1);
+ratioAs_pred = zeros(t,1);
 ratioAs_all = ones(t,1);
 
 % initiate default probability
@@ -130,6 +140,8 @@ default_num_prfct1 = zeros(size(R_proposed_cum_A));
 default_prob_prfct1 = zeros(size(R_proposed_cum_A));
 default_num_prfct2 = zeros(size(R_proposed_cum_A));
 default_prob_prfct2 = zeros(size(R_proposed_cum_A));
+default_num_pred = zeros(size(R_proposed_cum_A));
+default_prob_pred = zeros(size(R_proposed_cum_A));
 default_num_all = zeros(size(R_proposed_cum_A));
 default_prob_all = zeros(size(R_proposed_cum_A));
 
@@ -139,13 +151,13 @@ for t_idx = 1:t
 %     workbar(t_idx/t)
     
     % generate applicants number & info
-    N = randi([10000,20000],1);
+    N = randi(Nlim,1);
 %     N = 20000;
     Nt(t_idx) = N; sum_Nt = sum(Nt);
     nempty = ceil(nempty_prcnt*N*ninfo);
 
     % Personal information: N x ninfo
-    [p,s] = random_apc_info(N, ninfo, nempty);
+    [p,s] = random_apc_info(N, ninfo, nempty, s_a, p_func);
     
     % return probability
     return_varialbe = rand(N,1);
@@ -210,6 +222,61 @@ for t_idx = 1:t
     default_num_prfct2(t_idx) = sum(R_prfct2 == (-1+e));
     default_prob_prfct2(t_idx) = sum(default_num_prfct2)/sum(numA_prfct2);
     
+    %% Prediction Approach
+    
+    if t_idx == 1
+        
+        % calculate rewards
+        R_pred = zeros([N,1]);
+        R_pred(return_varialbe < p) = c+e;
+        R_pred(return_varialbe >= p) = -1+e;
+        
+        % calculate acceptance probability
+        numA_pred(t_idx) = N; % number of acceptance
+        ratioAs_pred(t_idx) = 1; % acceptance ratio
+
+        % calculate default probability
+        default_num_pred(t_idx) = sum(R_pred == (-1+e));
+        default_prob_pred(t_idx) = sum(default_num_pred)/sum(numA_pred);
+        
+        % store data for interpolation
+        s_interp_pred = s(1:Nlim(1),:);
+        p_interp_pred = p(1:Nlim(1));
+        
+    else
+        
+        if t_idx <= train_lim
+        
+            % interpolation model
+            loan_mdl_pred = fit(mean(s_interp_pred,2),p_interp_pred,...
+                'gauss1');
+
+            % store data for next interpolation
+            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
+            s_interp_pred(data_replc_idx,:) = s(data_replc_idx,:);
+            p_interp_pred(data_replc_idx) = p(data_replc_idx);
+        
+        end
+        
+        % making decision
+        p_pred = loan_mdl_pred(mean(s,2));
+        A_pred = ((((c+1).*p_pred)+e-1)>=0);
+
+        % calculate rewards
+        R_pred = zeros([N,1]);
+        R_pred(A_pred == 1 & return_varialbe < p) = c+e;
+        R_pred(A_pred == 1 & return_varialbe >= p) = -1+e;
+        
+        % calculate acceptance probability
+        numA_pred(t_idx) = sum(A_pred); % number of acceptance
+        ratioAs_pred(t_idx) = sum(numA_pred)/sum_Nt; % acceptance ratio
+
+        % calculate default probability
+        default_num_pred(t_idx) = sum(R_pred == (-1+e));
+        default_prob_pred(t_idx) = sum(default_num_pred)/sum(numA_pred);
+        
+    end
+    
     %% perceptron
     
     % calculate the decision value
@@ -260,8 +327,8 @@ for t_idx = 1:t
         default_prob_T(t_idx) = sum(default_num_T)/sum(numA_T);
         
         % store data for training
-        s_train_T = s(1:10000,:);
-        dec_train_T = (return_varialbe(1:10000) < p(1:10000));
+        s_train_T = s(1:Nlim(1),:);
+        dec_train_T = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
         
     else
         
@@ -274,7 +341,7 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(10000,1000);
+            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_T(data_replc_idx,:) = s(data_replc_idx,:);
             dec_train_T(data_replc_idx) = ...
                 (return_varialbe(data_replc_idx) < p(data_replc_idx));
@@ -317,8 +384,8 @@ for t_idx = 1:t
         default_prob_svm(t_idx) = sum(default_num_svm)/sum(numA_svm);
         
         % store data for training
-        s_train_svm = s(1:10000,:);
-        dec_train_svm = (return_varialbe(1:10000) < p(1:10000));
+        s_train_svm = s(1:Nlim(1),:);
+        dec_train_svm = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
         
     else
         
@@ -331,7 +398,7 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(10000,1000);
+            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_svm(data_replc_idx,:) = s(data_replc_idx,:);
             dec_train_svm(data_replc_idx) = ...
                 (return_varialbe(data_replc_idx) < p(data_replc_idx));
@@ -375,8 +442,8 @@ for t_idx = 1:t
         default_prob_L(t_idx) = sum(default_num_L)/sum(numA_L);
         
         % store data for training
-        s_train_L = s(1:10000,:);
-        dec_train_L = (return_varialbe(1:10000) < p(1:10000));
+        s_train_L = s(1:Nlim(1),:);
+        dec_train_L = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
         
     else
         
@@ -389,7 +456,7 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(10000,1000);
+            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_L(data_replc_idx,:) = s(data_replc_idx,:);
             dec_train_L(data_replc_idx) = ...
                 (return_varialbe(data_replc_idx) < p(data_replc_idx));
@@ -657,6 +724,7 @@ for t_idx = 1:t
         R_proposed_cum_C(t_idx) = global_max_R_C;
         R_prfct1_cum(t_idx) = sum(R_prfct1);
         R_prfct2_cum(t_idx) = sum(R_prfct2);
+        R_pred_cum(t_idx) = sum(R_pred);
         R_P_cum(t_idx) = sum(R_P);
         R_T_cum(t_idx) = sum(R_T);
         R_svm_cum(t_idx) = sum(R_svm);
@@ -677,6 +745,8 @@ for t_idx = 1:t
             (sum(R_prfct1)+(R_prfct1_cum(t_idx-1))*(t_idx-1))/t_idx;
         R_prfct2_cum(t_idx) = ...
             (sum(R_prfct2)+(R_prfct2_cum(t_idx-1))*(t_idx-1))/t_idx;
+        R_pred_cum(t_idx) = ...
+            (sum(R_pred)+(R_pred_cum(t_idx-1))*(t_idx-1))/t_idx;
         R_P_cum(t_idx) = ...
             (sum(R_P)+(R_P_cum(t_idx-1))*(t_idx-1))/t_idx;
         R_T_cum(t_idx) = ...
@@ -701,6 +771,7 @@ R_cum.proposed.B = R_proposed_cum_B;
 R_cum.proposed.C = R_proposed_cum_C;
 R_cum.perfect.updating = R_prfct1_cum;
 R_cum.perfect.constant = R_prfct2_cum;
+R_cum.p_prediction = R_pred_cum;
 R_cum.perceptron = R_P_cum;
 R_cum.FitTree = R_T_cum;
 R_cum.SVM = R_svm_cum;
@@ -714,6 +785,7 @@ acceptance.proposed.B = ratioAs_B;
 acceptance.proposed.C = ratioAs_C;
 acceptance.perfect.updating = ratioAs_prfct1;
 acceptance.perfect.constant = ratioAs_prfct2;
+acceptance.p_prediction = ratioAs_pred;
 acceptance.perceptron = ratioAs_P;
 acceptance.FitTree = ratioAs_T;
 acceptance.SVM = ratioAs_svm;
@@ -727,6 +799,7 @@ default.proposed.B = default_prob_B;
 default.proposed.C = default_prob_C;
 default.perfect.updating = default_prob_prfct1;
 default.perfect.constant = default_prob_prfct2;
+default.p_prediction = default_prob_pred;
 default.perceptron = default_prob_P;
 default.FitTree = default_prob_T;
 default.SVM = default_prob_svm;
@@ -742,6 +815,7 @@ parameters.proposed.B.eps = eps_arr_B;
 parameters.proposed.C.phis = phis_C;
 parameters.proposed.C.eps = eps_arr_C;
 parameters.perfect.updating.threshold = dec_lim;
+parameters.perceptron.p_prediction = loan_mdl_pred;
 parameters.perceptron.P = P;
 parameters.perceptron.w = w;
 parameters.FitTree = loan_mdl_T;
@@ -753,77 +827,33 @@ end
 
 %% function to generate s
 
-function [p,s] = random_apc_info(n_apcs, ninfo, nempty)
+function [p,s] = random_apc_info(n_apcs, ninfo, nempty, s_a, p_func)
 
 % generate s
-
-% s1_prcnt = 0.2 + 0.2*rand(1);
-% s1_num = ceil(s1_prcnt*n_apcs);
-% s1 = 2.*rand(s1_num,ninfo);
-% s2 = 2 + 2.*rand(n_apcs-s1_num,ninfo);
-% s = [s1;s2];
-% s = s(randperm(size(s, 1)), :);
-
 n_bins = 100;
-s1_prcnt = [linspace(0,1/n_bins,n_bins),0.5];%0.2 + 0.2*rand(1);
+s1_prcnt = linspace(s_a,(2/n_bins)-s_a,n_bins);
 s1_num = floor(s1_prcnt*n_apcs);
-s1_lb = linspace(0,4,n_bins+1);
+s1_lb = linspace(0,4,n_bins);
 s = 4.*rand(n_apcs,ninfo);
-for i = 2:n_bins+1
+for i = 2:n_bins
     s(sum(s1_num(1:i-1))+1:sum(s1_num(1:i-1))+s1_num(i),:) = ...
         s1_lb(i-1) + (1./n_bins).*s(sum(s1_num(1:i-1))+...
         1:sum(s1_num(1:i-1))+s1_num(i),:);
 end
 s = s(randperm(size(s, 1)), :);
 
-% n_bins = 100;
-% s1_prcnt = linspace(0,2/n_bins,n_bins);%0.2 + 0.2*rand(1);
-% s1_num = floor(s1_prcnt*n_apcs);
-% s1_lb = linspace(0,4,n_bins);
-% s = 4.*rand(n_apcs,ninfo);
-% for i = 2:n_bins
-%     s(sum(s1_num(1:i-1))+1:sum(s1_num(1:i-1))+s1_num(i),:) = ...
-%         s1_lb(i-1) + (1./n_bins).*s(sum(s1_num(1:i-1))+...
-%         1:sum(s1_num(1:i-1))+s1_num(i),:);
-% end
-% s = s(randperm(size(s, 1)), :);
-
-%apcs_info = 4*ones([20000,1]);
-% apcs_info = randi([0 4],n_apcs,ninfo);
-% apcs_info = zeros(n_apcs,ninfo);
-% s = 4 - abs(normrnd(0,1,n_apcs,ninfo));
-% apcs_info = normrnd(3,1,n_apcs,ninfo);
-%     apcs_info(apcs_info < 0) = 0;
-%     apcs_info(apcs_info > 4) = 4;
-% s = 4.*rand(n_apcs,ninfo);
-% apcs_info(1:n_apcs,:) = 4;
-%     disp(size(apcs_info));
-%apcs_info = [apcs_info1 apcs_info2]
-
 % calculate the probability
-% p = (sum(s.*w,2) ./ sum((4.*w)));
+switch p_func.type
+    case 'linear'
+        p = mean(s,2)./4;
+    case 'quadratic'
+        p = (-1/16).*mean(s,2).^2 + (1/2).*mean(s,2);
+    case 'exponential'
+        q = 3.*mean(s,2)-4;
+        p = (exp(q)) ./ (1+exp(q));
+end
 
-p = mean(s,2)/4;
-% p(p>0.6) = p(p>0.6)+0.225;
-% p(p>1) = 1;
-% p(p<0.95 & p>0.5) = 1;
-
-% p = 1./(1+exp(-3.*(mean(s,2)-2)));
-
-% p(p>0.475) = p(p>0.475)+0.5;
-%     p(p>1) = 1;
-% p(p<=0.475) = p(p<=0.475)-0.2;
-%     p(p<0) = 0;
-% p = (2.*exp(mean(s,2))./(1+exp(mean(s,2))))-1;
-%     p = sum(s,2);
-
-% h = s(:,1)+4.*s(:,2);
-% p = zeros(size(h));
-% p(h>10) = 1;
-% p = h./20;
-% p(h>10) = 0.95;
-% p = s>=2;
-
+% assign empty
 emty_idx = randperm(numel(s(:)),nempty);
 s(emty_idx) = NaN;
 
