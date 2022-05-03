@@ -1,5 +1,6 @@
 function [R_cum,acceptance,default,parameters] = MFI_simulation...
-    (case_option,MS_parameters,gradient_parameters,train_lim,rndm)
+    (case_option,MS_parameters,gradient_parameters,train_lim,...
+    data,rndm)
 
 if ~rndm
     rng(1)
@@ -10,8 +11,20 @@ end
 Nlim = case_option.Nlim; % lower and upper limit
 
 % parameters to generate s and p
-s_a = case_option.s_a;
-p_func = case_option.p_func;
+% s_a = case_option.s_a;
+% p_func = case_option.p_func;
+
+% load s and p data
+% load(['artificial_data_a_',num2str(case_option.s_a),...
+%     '_pFunc_',case_option.p_func.type,num2str(case_option.p_func.const),...
+%     '.mat'],'s','p')
+% s_data = s;
+% p_data = p;
+
+% s, p, and A data
+s_data = data.s;
+p_data = data.p;
+status_data = data.status;
 
 % reward rule
 c = case_option.c; % interest rate
@@ -157,17 +170,26 @@ for t_idx = 1:t
     nempty = ceil(nempty_prcnt*N*ninfo);
 
     % Personal information: N x ninfo
-    [p,s] = random_apc_info(N, ninfo, nempty, s_a, p_func);
+%     [p,s] = random_apc_info(N, ninfo, nempty, s_a, p_func);
+    % picking data
+    s_id = randi(numel(p_data),[N,1]);
+    s = s_data(s_id,1:ninfo);
+    p = p_data(s_id);
+    LoanStatus = status_data(s_id);
+    
+    % assign empty
+    emty_idx = randperm(numel(s(:)),nempty);
+    s(emty_idx) = NaN;
     
     % return probability
-    return_varialbe = rand(N,1);
+%     return_varialbe = rand(N,1);
     
     %% choose all
     
     % calculate rewards
     R_all = zeros([N,1]);
-    R_all(return_varialbe < p) = c+e;
-    R_all(return_varialbe >= p) = -1+e;
+    R_all(LoanStatus) = c+e;
+    R_all(~LoanStatus) = -1+e;
     
     % calculate default probability
     default_num_all(t_idx) = sum(R_all == (-1+e));
@@ -192,8 +214,8 @@ for t_idx = 1:t
     
     % calculate rewards
     R_prfct1 = zeros([N,1]);
-    R_prfct1(A_prfct1==1 & return_varialbe < p) = c+e;
-    R_prfct1(A_prfct1==1 & return_varialbe >= p) = -1+e;
+    R_prfct1(A_prfct1 & LoanStatus) = c+e;
+    R_prfct1(A_prfct1 & ~LoanStatus) = -1+e;
     R_prfct1_mean = mean(R_prfct1);
     
     % calculate acceptance probability
@@ -207,12 +229,13 @@ for t_idx = 1:t
     %% perfect decision constant limit
     
     % making decision
-    A_prfct2 = ((((c+1).*p)+e-1)>=0);
+%     A_prfct2 = ((((c+1).*p)+e-1)>=0);
+    A_prfct2 = (p >= ((1-e)/(1+c)));
     
     % calculate rewards
     R_prfct2 = zeros([N,1]);
-    R_prfct2(A_prfct2==1 & return_varialbe < p) = c+e;
-    R_prfct2(A_prfct2==1 & return_varialbe >= p) = -1+e;
+    R_prfct2(A_prfct2 & LoanStatus) = c+e;
+    R_prfct2(A_prfct2 & ~LoanStatus) = -1+e;
     
     % calculate acceptance probability
     numA_prfct2(t_idx) = sum(R_prfct2>0); % number of acceptance
@@ -228,8 +251,8 @@ for t_idx = 1:t
         
         % calculate rewards
         R_pred = zeros([N,1]);
-        R_pred(return_varialbe < p) = c+e;
-        R_pred(return_varialbe >= p) = -1+e;
+        R_pred(LoanStatus) = c+e;
+        R_pred(~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_pred(t_idx) = N; % number of acceptance
@@ -240,7 +263,8 @@ for t_idx = 1:t
         default_prob_pred(t_idx) = sum(default_num_pred)/sum(numA_pred);
         
         % store data for interpolation
-        s_interp_pred = s(1:Nlim(1),:);
+        s_interp_pred = s(1:Nlim(1),:); 
+            s_interp_pred(isnan(s_interp_pred)) = 0;
         p_interp_pred = p(1:Nlim(1));
         
     else
@@ -254,6 +278,7 @@ for t_idx = 1:t
             % store data for next interpolation
             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_interp_pred(data_replc_idx,:) = s(data_replc_idx,:);
+                s_interp_pred(isnan(s_interp_pred)) = 0;
             p_interp_pred(data_replc_idx) = p(data_replc_idx);
         
         end
@@ -264,8 +289,8 @@ for t_idx = 1:t
 
         % calculate rewards
         R_pred = zeros([N,1]);
-        R_pred(A_pred == 1 & return_varialbe < p) = c+e;
-        R_pred(A_pred == 1 & return_varialbe >= p) = -1+e;
+        R_pred(A_pred & LoanStatus) = c+e;
+        R_pred(A_pred & ~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_pred(t_idx) = sum(A_pred); % number of acceptance
@@ -288,8 +313,8 @@ for t_idx = 1:t
     
     % calculate rewards
     R_P = zeros([N,1]);
-    R_P(A_P == 1 & return_varialbe < p) = c+e;
-    R_P(A_P == 1 & return_varialbe >= p) = -1+e;
+    R_P(A_P & LoanStatus) = c+e;
+    R_P(A_P & ~LoanStatus) = -1+e;
     
     % calculate acceptance probability
     numA_P(t_idx) = sum(A_P); % number of acceptance
@@ -300,8 +325,8 @@ for t_idx = 1:t
     default_prob_P(t_idx) = sum(default_num_P)/sum(numA_P);
     
     % updating parameters
-    neg_idx = find(A_P == 1 & return_varialbe >= p);
-    pos_idx = find(A_P == 0 & return_varialbe < p);
+    neg_idx = find(A_P & ~LoanStatus);
+    pos_idx = find(~A_P & LoanStatus);
     P = P - sum(sP(neg_idx,:))';
     w = w - numel(neg_idx);
     P = P + sum(sP(pos_idx,:))';
@@ -315,8 +340,8 @@ for t_idx = 1:t
         
         % calculate rewards
         R_T = zeros([N,1]);
-        R_T(return_varialbe < p) = c+e;
-        R_T(return_varialbe >= p) = -1+e;
+        R_T(LoanStatus) = c+e;
+        R_T(~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_T(t_idx) = N; % number of acceptance
@@ -328,7 +353,8 @@ for t_idx = 1:t
         
         % store data for training
         s_train_T = s(1:Nlim(1),:);
-        dec_train_T = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
+            s_train_T(isnan(s_train_T)) = 0;
+        dec_train_T = LoanStatus(1:Nlim(1));
         
     else
         
@@ -343,8 +369,8 @@ for t_idx = 1:t
             % store data for training
             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_T(data_replc_idx,:) = s(data_replc_idx,:);
-            dec_train_T(data_replc_idx) = ...
-                (return_varialbe(data_replc_idx) < p(data_replc_idx));
+                s_train_T(isnan(s_train_T)) = 0;
+            dec_train_T(data_replc_idx) = LoanStatus(data_replc_idx);
         
         end
         
@@ -353,8 +379,8 @@ for t_idx = 1:t
 
         % calculate rewards
         R_T = zeros([N,1]);
-        R_T(A_T == 1 & return_varialbe < p) = c+e;
-        R_T(A_T == 1 & return_varialbe >= p) = -1+e;
+        R_T(A_T & LoanStatus) = c+e;
+        R_T(A_T & ~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_T(t_idx) = sum(A_T); % number of acceptance
@@ -372,8 +398,8 @@ for t_idx = 1:t
         
         % calculate rewards
         R_svm = zeros([N,1]);
-        R_svm(return_varialbe < p) = c+e;
-        R_svm(return_varialbe >= p) = -1+e;
+        R_svm(LoanStatus) = c+e;
+        R_svm(~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_svm(t_idx) = N; % number of acceptance
@@ -385,7 +411,8 @@ for t_idx = 1:t
         
         % store data for training
         s_train_svm = s(1:Nlim(1),:);
-        dec_train_svm = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
+            s_train_svm(isnan(s_train_svm)) = 0;
+        dec_train_svm = LoanStatus(1:Nlim(1));
         
     else
         
@@ -400,8 +427,8 @@ for t_idx = 1:t
             % store data for training
             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_svm(data_replc_idx,:) = s(data_replc_idx,:);
-            dec_train_svm(data_replc_idx) = ...
-                (return_varialbe(data_replc_idx) < p(data_replc_idx));
+                s_train_svm(isnan(s_train_svm)) = 0;
+            dec_train_svm(data_replc_idx) = LoanStatus(data_replc_idx);
         
         end
         
@@ -410,8 +437,8 @@ for t_idx = 1:t
 
         % calculate rewards
         R_svm = zeros([N,1]);
-        R_svm(A_svm == 1 & return_varialbe < p) = c+e;
-        R_svm(A_svm == 1 & return_varialbe >= p) = -1+e;
+        R_svm(A_svm & LoanStatus) = c+e;
+        R_svm(A_svm & ~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_svm(t_idx) = sum(A_svm); % number of acceptance
@@ -430,8 +457,8 @@ for t_idx = 1:t
         
         % calculate rewards
         R_L = zeros([N,1]);
-        R_L(return_varialbe < p) = c+e;
-        R_L(return_varialbe >= p) = -1+e;
+        R_L(LoanStatus) = c+e;
+        R_L(~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_L(t_idx) = N; % number of acceptance
@@ -443,7 +470,8 @@ for t_idx = 1:t
         
         % store data for training
         s_train_L = s(1:Nlim(1),:);
-        dec_train_L = (return_varialbe(1:Nlim(1)) < p(1:Nlim(1)));
+            s_train_L(isnan(s_train_L)) = 0;
+        dec_train_L = LoanStatus(1:Nlim(1));
         
     else
         
@@ -458,8 +486,8 @@ for t_idx = 1:t
             % store data for training
             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
             s_train_L(data_replc_idx,:) = s(data_replc_idx,:);
-            dec_train_L(data_replc_idx) = ...
-                (return_varialbe(data_replc_idx) < p(data_replc_idx));
+                s_train_L(isnan(s_train_L)) = 0;
+            dec_train_L(data_replc_idx) = LoanStatus(data_replc_idx);
         
         end
         
@@ -468,8 +496,8 @@ for t_idx = 1:t
 
         % calculate rewards
         R_L = zeros([N,1]);
-        R_L(A_L == 1 & return_varialbe < p) = c+e;
-        R_L(A_L == 1 & return_varialbe >= p) = -1+e;
+        R_L(A_L & LoanStatus) = c+e;
+        R_L(A_L & ~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_L(t_idx) = sum(A_L); % number of acceptance
@@ -488,8 +516,8 @@ for t_idx = 1:t
         
         % calculate rewards
         R_N = zeros([N,1]);
-        R_N(return_varialbe < p) = c+e;
-        R_N(return_varialbe >= p) = -1+e;
+        R_N(LoanStatus) = c+e;
+        R_N(~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_N(t_idx) = N; % number of acceptance
@@ -501,7 +529,8 @@ for t_idx = 1:t
         
         % store data for training
         s_train_N = s;
-        dec_train_N = (return_varialbe < p);
+            s_train_N(isnan(s_train_N)) = 0;
+        dec_train_N = LoanStatus;
         
     else
         
@@ -512,7 +541,8 @@ for t_idx = 1:t
 
             % store data for training
             s_train_N = s;
-            dec_train_N = (return_varialbe < p);
+                s_train_N(isnan(s_train_N)) = 0;
+            dec_train_N = LoanStatus;
         
         end
         
@@ -521,8 +551,8 @@ for t_idx = 1:t
 
         % calculate rewards
         R_N = zeros([N,1]);
-        R_N(A_N == 1 & return_varialbe < p) = c+e;
-        R_N(A_N == 1 & return_varialbe >= p) = -1+e;
+        R_N(A_N & LoanStatus) = c+e;
+        R_N(A_N & ~LoanStatus) = -1+e;
         
         % calculate acceptance probability
         numA_N(t_idx) = sum(A_N); % number of acceptance
@@ -565,7 +595,7 @@ for t_idx = 1:t
             % perform gradient ascent
             [phi_A(:,p_idx),eps_A(:,p_idx),R_sum_A(p_idx),...
                 numA_A(p_idx),default_num_A(p_idx)] = ...
-                gradient_ascent(N,s,p,ninfo,return_varialbe,k,'A',...
+                gradient_ascent(N,s,ninfo,LoanStatus,k,'A',...
                 c,e,phi_now,eps_now,alpha_A,R_proposed_cum_A,sum_Nt);
             
             % Case B
@@ -577,7 +607,7 @@ for t_idx = 1:t
             % perform gradient ascent
             [phi_B(:,p_idx),eps_B(:,p_idx),R_sum_B(p_idx),...
                 numA_B(p_idx),default_num_B(p_idx)] = ...
-                gradient_ascent(N,s,p,ninfo,return_varialbe,k,'B',...
+                gradient_ascent(N,s,ninfo,LoanStatus,k,'B',...
                 c,e,phi_now,eps_now,alpha_B,R_proposed_cum_B,sum_Nt);
             
             % Case C
@@ -589,7 +619,7 @@ for t_idx = 1:t
             % perform gradient ascent
             [phi_C(:,p_idx),eps_C(:,p_idx),R_sum_C(p_idx),...
                 numA_C(p_idx),default_num_C(p_idx)] = ...
-                gradient_ascent(N,s,p,ninfo,return_varialbe,k,'C',...
+                gradient_ascent(N,s,ninfo,LoanStatus,k,'C',...
                 c,e,phi_now,eps_now,alpha_C,R_proposed_cum_C,sum_Nt);
             
         end
@@ -658,7 +688,7 @@ for t_idx = 1:t
         % perform gradient ascent
         [global_max_phi_A,global_max_eps_A,global_max_R_A,...
             global_max_numA_A(t_idx),global_max_default_num_A(t_idx)] = ...
-            gradient_ascent(N,s,p,ninfo,return_varialbe,k,'A',...
+            gradient_ascent(N,s,ninfo,LoanStatus,k,'A',...
             c,e,phi_now,eps_now,alpha_A,R_proposed_cum_A,sum_Nt);
         
         % calculate acceptance probability
@@ -677,7 +707,7 @@ for t_idx = 1:t
         % perform gradient ascent
         [global_max_phi_B,global_max_eps_B,global_max_R_B,...
             global_max_numA_B(t_idx),global_max_default_num_B(t_idx)] = ...
-            gradient_ascent(N,s,p,ninfo,return_varialbe,k,'B',...
+            gradient_ascent(N,s,ninfo,LoanStatus,k,'B',...
             c,e,phi_now,eps_now,alpha_B,R_proposed_cum_B,sum_Nt);
         
         % calculate acceptance probability
@@ -696,7 +726,7 @@ for t_idx = 1:t
         % perform gradient ascent
         [global_max_phi_C,global_max_eps_C,global_max_R_C,...
             global_max_numA_C(t_idx),global_max_default_num_C(t_idx)] = ...
-            gradient_ascent(N,s,p,ninfo,return_varialbe,k,'C',...
+            gradient_ascent(N,s,ninfo,LoanStatus,k,'C',...
             c,e,phi_now,eps_now,alpha_C,R_proposed_cum_C,sum_Nt);
         
         % calculate acceptance probability
@@ -825,44 +855,44 @@ parameters.neural = loan_mdl_N;
 
 end
 
-%% function to generate s
+%% function to generate s artificialy on the go
 
-function [p,s] = random_apc_info(n_apcs, ninfo, nempty, s_a, p_func)
-
-% generate s
-n_bins = 100;
-s1_prcnt = linspace(s_a,(2/n_bins)-s_a,n_bins);
-s1_num = floor(s1_prcnt*n_apcs);
-s1_lb = linspace(0,4,n_bins);
-s = 4.*rand(n_apcs,ninfo);
-for i = 2:n_bins
-    s(sum(s1_num(1:i-1))+1:sum(s1_num(1:i-1))+s1_num(i),:) = ...
-        s1_lb(i-1) + (1./n_bins).*s(sum(s1_num(1:i-1))+...
-        1:sum(s1_num(1:i-1))+s1_num(i),:);
-end
-s = s(randperm(size(s, 1)), :);
-
-% calculate the probability
-switch p_func.type
-    case 'linear'
-        p = mean(s,2)./4;
-    case 'quadratic'
-        p = (-1/16).*mean(s,2).^2 + (1/2).*mean(s,2);
-    case 'exponential'
-        q = 3.*mean(s,2)-4;
-        p = (exp(q)) ./ (1+exp(q));
-end
-
-% assign empty
-emty_idx = randperm(numel(s(:)),nempty);
-s(emty_idx) = NaN;
-
-end
+% function [p,s] = random_apc_info(n_apcs, ninfo, nempty, s_a, p_func)
+% 
+% % generate s
+% n_bins = min(ceil(n_apcs/5),100);
+% s1_prcnt = linspace(s_a,(2/n_bins)-s_a,n_bins);
+% s1_num = floor(s1_prcnt*n_apcs);
+% s1_lb = linspace(0,4,n_bins);
+% s = 4.*rand(n_apcs,ninfo);
+% for i = 2:n_bins
+%     s(sum(s1_num(1:i-1))+1:sum(s1_num(1:i-1))+s1_num(i),:) = ...
+%         s1_lb(i-1) + (1./n_bins).*s(sum(s1_num(1:i-1))+...
+%         1:sum(s1_num(1:i-1))+s1_num(i),:);
+% end
+% s = s(randperm(size(s, 1)), :);
+% 
+% % calculate the probability
+% switch p_func.type
+%     case 'linear'
+%         p = mean(s,2)./4;
+%     case 'quadratic'
+%         p = (-1/16).*mean(s,2).^2 + (1/2).*mean(s,2);
+%     case 'exponential'
+%         q = p_func.const.*mean(s,2)-4;
+%         p = (exp(q)) ./ (1+exp(q));
+% end
+% 
+% % assign empty
+% emty_idx = randperm(numel(s(:)),nempty);
+% s(emty_idx) = NaN;
+% 
+% end
 
 %% function for the gradient ascent step
 
 function [phi_now,eps_now,R_sum,numA,default_num] = ...
-    gradient_ascent(N,s,p,ninfo,return_varialbe,k,L_form,c,e,...
+    gradient_ascent(N,s,ninfo,LoanStatus,k,L_form,c,e,...
     phi_now,eps_now,alpha,R_proposed_cum,sum_Nt)
 
 % calculate Q
@@ -892,8 +922,8 @@ A = (decision_varialbe < pie);
 
 % calculate rewards
 R = zeros([N,1]);
-R(A == 1 & return_varialbe < p) = c+e;
-R(A == 1 & return_varialbe >= p) = -1+e;
+R(A & LoanStatus) = c+e;
+R(A & ~LoanStatus) = -1+e;
 
 % index of the accepted applications
 Aid = find(A == 1);
