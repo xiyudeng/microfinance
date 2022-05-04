@@ -263,23 +263,27 @@ for t_idx = 1:t
         default_prob_pred(t_idx) = sum(default_num_pred)/sum(numA_pred);
         
         % store data for interpolation
-        s_interp_pred = s(1:Nlim(1),:); 
-            s_interp_pred(isnan(s_interp_pred)) = 0;
-        p_interp_pred = p(1:Nlim(1));
+%         s_interp_pred = s(1:Nlim(1),:);
+        s_interp_pred = s;
+%             s_interp_pred(isnan(s_interp_pred)) = 0;
+%         p_interp_pred = p(1:Nlim(1));
+        p_interp_pred = p;
         
     else
         
         if t_idx <= train_lim
         
             % interpolation model
-            loan_mdl_pred = fit(mean(s_interp_pred,2),p_interp_pred,...
-                'gauss1');
+            loan_mdl_pred = fit(mean(s_interp_pred,2,'omitnan'),...
+                p_interp_pred,'gauss1');
 
             % store data for next interpolation
-            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
-            s_interp_pred(data_replc_idx,:) = s(data_replc_idx,:);
-                s_interp_pred(isnan(s_interp_pred)) = 0;
-            p_interp_pred(data_replc_idx) = p(data_replc_idx);
+%             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
+%             s_interp_pred(data_replc_idx,:) = s(data_replc_idx,:);
+            s_interp_pred = [s_interp_pred;s];
+%                 s_interp_pred(isnan(s_interp_pred)) = 0;
+%             p_interp_pred(data_replc_idx) = p(data_replc_idx);
+            p_interp_pred = [p_interp_pred;p];
         
         end
         
@@ -352,9 +356,11 @@ for t_idx = 1:t
         default_prob_T(t_idx) = sum(default_num_T)/sum(numA_T);
         
         % store data for training
-        s_train_T = s(1:Nlim(1),:);
-            s_train_T(isnan(s_train_T)) = 0;
-        dec_train_T = LoanStatus(1:Nlim(1));
+%         s_train_T = s(1:Nlim(1),:);
+        s_train_T = s;
+%             s_train_T(isnan(s_train_T)) = 0;
+%         dec_train_T = LoanStatus(1:Nlim(1));
+        dec_train_T = LoanStatus;
         
     else
         
@@ -367,10 +373,12 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
-            s_train_T(data_replc_idx,:) = s(data_replc_idx,:);
-                s_train_T(isnan(s_train_T)) = 0;
-            dec_train_T(data_replc_idx) = LoanStatus(data_replc_idx);
+%             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
+%             s_train_T(data_replc_idx,:) = s(data_replc_idx,:);
+            s_train_T = [s_train_T;s];
+%                 s_train_T(isnan(s_train_T)) = 0;
+%             dec_train_T(data_replc_idx) = LoanStatus(data_replc_idx);
+            dec_train_T = [dec_train_T;LoanStatus];
         
         end
         
@@ -410,9 +418,11 @@ for t_idx = 1:t
         default_prob_svm(t_idx) = sum(default_num_svm)/sum(numA_svm);
         
         % store data for training
-        s_train_svm = s(1:Nlim(1),:);
-            s_train_svm(isnan(s_train_svm)) = 0;
-        dec_train_svm = LoanStatus(1:Nlim(1));
+%         s_train_svm = s(1:Nlim(1),:);
+        s_train_svm = s;
+            s_train_svm(isnan(s_train_svm)) = -1;
+%         dec_train_svm = LoanStatus(1:Nlim(1));
+        dec_train_svm = LoanStatus;
         
     else
         
@@ -425,10 +435,12 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
-            s_train_svm(data_replc_idx,:) = s(data_replc_idx,:);
-                s_train_svm(isnan(s_train_svm)) = 0;
-            dec_train_svm(data_replc_idx) = LoanStatus(data_replc_idx);
+%             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
+%             s_train_svm(data_replc_idx,:) = s(data_replc_idx,:);
+            s_train_svm = [s_train_svm;s];
+                s_train_svm(isnan(s_train_svm)) = -1;
+%             dec_train_svm(data_replc_idx) = LoanStatus(data_replc_idx);
+            dec_train_svm = [dec_train_svm;LoanStatus];
         
         end
         
@@ -469,9 +481,11 @@ for t_idx = 1:t
         default_prob_L(t_idx) = sum(default_num_L)/sum(numA_L);
         
         % store data for training
-        s_train_L = s(1:Nlim(1),:);
-            s_train_L(isnan(s_train_L)) = 0;
-        dec_train_L = LoanStatus(1:Nlim(1));
+%         s_train_L = s(1:Nlim(1),:);
+        s_train_L = s;
+            s_train_L(isnan(s_train_L)) = -1;
+%         dec_train_L = LoanStatus(1:Nlim(1));
+        dec_train_L = LoanStatus;
         
     else
         
@@ -484,10 +498,12 @@ for t_idx = 1:t
                 struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
 
             % store data for training
-            data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
-            s_train_L(data_replc_idx,:) = s(data_replc_idx,:);
-                s_train_L(isnan(s_train_L)) = 0;
-            dec_train_L(data_replc_idx) = LoanStatus(data_replc_idx);
+%             data_replc_idx = randperm(Nlim(1),Nlim(1)/10);
+%             s_train_L(data_replc_idx,:) = s(data_replc_idx,:);
+            s_train_L = [s_train_L;s];
+                s_train_L(isnan(s_train_L)) = -1;
+%             dec_train_L(data_replc_idx) = LoanStatus(data_replc_idx);
+            dec_train_L = [dec_train_L;LoanStatus];
         
         end
         
@@ -529,7 +545,7 @@ for t_idx = 1:t
         
         % store data for training
         s_train_N = s;
-            s_train_N(isnan(s_train_N)) = 0;
+            s_train_N(isnan(s_train_N)) = -1;
         dec_train_N = LoanStatus;
         
     else
@@ -540,9 +556,9 @@ for t_idx = 1:t
             loan_mdl_N = train(loan_mdl_N,s_train_N',dec_train_N');
 
             % store data for training
-            s_train_N = s;
-                s_train_N(isnan(s_train_N)) = 0;
-            dec_train_N = LoanStatus;
+            s_train_N = [s_train_N;s];
+                s_train_N(isnan(s_train_N)) = -1;
+            dec_train_N = [dec_train_N;LoanStatus];
         
         end
         
