@@ -64,17 +64,17 @@ Nt = zeros(t,1); % list to store applicants number
 % phis = zeros(t,ninfo);
 % eps = -10 + 20.*rand(ninfo,nPartcl);
 % eps_arr = zeros(t,ninfo);
-phi_A = -10 + 20.*rand(ninfo,nPartcl);
+phi_A = -100 + 200.*rand(ninfo,nPartcl);
 phis_A = zeros(t,ninfo);
-eps_A = -10 + 20.*rand(ninfo,nPartcl);
+eps_A = -100 + 200.*rand(ninfo,nPartcl);
 eps_arr_A = zeros(t,ninfo);
-phi_B = -10 + 20.*rand(ninfo,nPartcl);
+phi_B = -100 + 200.*rand(ninfo,nPartcl);
 phis_B = zeros(t,ninfo);
-eps_B = -10 + 20.*rand(ninfo,nPartcl);
+eps_B = -100 + 200.*rand(ninfo,nPartcl);
 eps_arr_B = zeros(t,ninfo);
-phi_C = -10 + 20.*rand(ninfo,nPartcl);
+phi_C = -100 + 200.*rand(ninfo,nPartcl);
 phis_C = zeros(t,ninfo);
-eps_C = -10 + 20.*rand(ninfo,nPartcl);
+eps_C = -100 + 200.*rand(ninfo,nPartcl);
 eps_arr_C = zeros(t,ninfo);
 
 % F = zeros(1,2*ninfo);
@@ -563,7 +563,7 @@ for t_idx = 1:t
         end
         
         % making decision
-        A_N = (loan_mdl_N(s')>0.5)';
+        A_N = (loan_mdl_N(s')>=((1-e)/(1+c)))';
 
         % calculate rewards
         R_N = zeros([N,1]);
@@ -679,19 +679,19 @@ for t_idx = 1:t
         % update parameters
         [~,srt_idx] = sort(R_sum_A,'descend');
         phi_A(:,1:nkeep) = phi_A(:,srt_idx(1:nkeep));
-        phi_A(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        phi_A(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
         eps_A(:,1:nkeep) = eps_A(:,srt_idx(1:nkeep));
-        eps_A(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        eps_A(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
         [~,srt_idx] = sort(R_sum_B,'descend');
         phi_B(:,1:nkeep) = phi_B(:,srt_idx(1:nkeep));
-        phi_B(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        phi_B(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
         eps_B(:,1:nkeep) = eps_B(:,srt_idx(1:nkeep));
-        eps_B(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        eps_B(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
         [~,srt_idx] = sort(R_sum_C,'descend');
         phi_C(:,1:nkeep) = phi_C(:,srt_idx(1:nkeep));
-        phi_C(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        phi_C(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
         eps_C(:,1:nkeep) = eps_C(:,srt_idx(1:nkeep));
-        eps_C(:,nkeep+1:end) = -10 + 20.*rand(ninfo,nPartcl-nkeep);
+        eps_C(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
 		
     else
         
@@ -913,7 +913,7 @@ function [phi_now,eps_now,R_sum,numA,default_num] = ...
 
 % calculate Q
 s_phi = s.*phi_now';
-Q = s_phi + eps_now'; Q(isnan(Q)) = 0;
+Q = s_phi + eps_now'; Q(isnan(Q)) = 0; %Q(Q<0) = 0; Q(isinf(Q)) = realmax;
     Qs = sign(Q); Q = abs(Q); Q(isinf(Q)) = realmax; Q = Qs.*Q;
 
 % policy pi
@@ -943,7 +943,8 @@ R(A & ~LoanStatus) = -1+e;
 
 % index of the accepted applications
 Aid = find(A == 1);
-del_pi = partial_pi_partial_Q(s,Q,Aid,ninfo,N,L_form,k);
+nAid = find(A==0);
+del_pi = partial_pi_partial_Q(s,Q,Aid,nAid,ninfo,N,L_form,k);
 
 Rbar = sum(R_proposed_cum)/sum_Nt;
 
@@ -969,7 +970,7 @@ end
 
 %% function to calcualte the derevative of the probability function
 
-function del_pi = partial_pi_partial_Q(s,Q,Aid,ninfo,N,L_form,k)
+function del_pi = partial_pi_partial_Q(s,Q,Aid,nAid,ninfo,N,L_form,k)
 
 del_pi = zeros([N, 2*ninfo]);
 
@@ -992,8 +993,11 @@ end
 
 del_pi(Aid,1:ninfo) = s(Aid,:).*par_del(Aid,:);
 del_pi(Aid,ninfo+1:end) = par_del(Aid,:);
+del_pi(nAid,1:ninfo) = -s(nAid,:).*par_del(nAid,:);
+del_pi(nAid,ninfo+1:end) = -par_del(nAid,:);
+    del_pi_s = sign(del_pi); del_pi = abs(del_pi);
     del_pi(del_pi==0) = realmin; del_pi(isinf(del_pi)) = realmax;
-    del_pi(isnan(del_pi)) = realmin;
+    del_pi(isnan(del_pi)) = realmin; del_pi = del_pi_s.*del_pi;
     
 end
 
