@@ -64,17 +64,18 @@ Nt = zeros(t,1); % list to store applicants number
 % phis = zeros(t,ninfo);
 % eps = -10 + 20.*rand(ninfo,nPartcl);
 % eps_arr = zeros(t,ninfo);
-phi_A = -100 + 200.*rand(ninfo,nPartcl);
+z_lb = -100; z_rng = 200;
+phi_A = z_lb + z_rng.*rand(ninfo,nPartcl);
 phis_A = zeros(t,ninfo);
-eps_A = -100 + 200.*rand(ninfo,nPartcl);
+eps_A = z_lb + z_rng.*rand(ninfo,nPartcl);
 eps_arr_A = zeros(t,ninfo);
-phi_B = -100 + 200.*rand(ninfo,nPartcl);
+phi_B = z_lb + z_rng.*rand(ninfo,nPartcl);
 phis_B = zeros(t,ninfo);
-eps_B = -100 + 200.*rand(ninfo,nPartcl);
+eps_B = z_lb + z_rng.*rand(ninfo,nPartcl);
 eps_arr_B = zeros(t,ninfo);
-phi_C = -100 + 200.*rand(ninfo,nPartcl);
+phi_C = z_lb + z_rng.*rand(ninfo,nPartcl);
 phis_C = zeros(t,ninfo);
-eps_C = -100 + 200.*rand(ninfo,nPartcl);
+eps_C = z_lb + z_rng.*rand(ninfo,nPartcl);
 eps_arr_C = zeros(t,ninfo);
 
 % F = zeros(1,2*ninfo);
@@ -679,19 +680,19 @@ for t_idx = 1:t
         % update parameters
         [~,srt_idx] = sort(R_sum_A,'descend');
         phi_A(:,1:nkeep) = phi_A(:,srt_idx(1:nkeep));
-        phi_A(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        phi_A(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
         eps_A(:,1:nkeep) = eps_A(:,srt_idx(1:nkeep));
-        eps_A(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        eps_A(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
         [~,srt_idx] = sort(R_sum_B,'descend');
         phi_B(:,1:nkeep) = phi_B(:,srt_idx(1:nkeep));
-        phi_B(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        phi_B(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
         eps_B(:,1:nkeep) = eps_B(:,srt_idx(1:nkeep));
-        eps_B(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        eps_B(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
         [~,srt_idx] = sort(R_sum_C,'descend');
         phi_C(:,1:nkeep) = phi_C(:,srt_idx(1:nkeep));
-        phi_C(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        phi_C(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
         eps_C(:,1:nkeep) = eps_C(:,srt_idx(1:nkeep));
-        eps_C(:,nkeep+1:end) = -100 + 200.*rand(ninfo,nPartcl-nkeep);
+        eps_C(:,nkeep+1:end) = z_lb + z_rng.*rand(ninfo,nPartcl-nkeep);
 		
     else
         
@@ -946,7 +947,7 @@ Aid = find(A == 1);
 nAid = find(A==0);
 del_pi = partial_pi_partial_Q(s,Q,Aid,nAid,ninfo,N,L_form,k);
 
-Rbar = sum(R_proposed_cum)/sum_Nt;
+Rbar = sum(R_proposed_cum)/(sum_Nt - numel(A));
 
 deltaR = (R - Rbar);
 F = mean((del_pi./pie).*deltaR,1);
