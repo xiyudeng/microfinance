@@ -54,6 +54,8 @@ eps_arr_C = zeros(t,ninfo);
 % perceptron parameters
 P = ones([ninfo,1]);
 w = 0;
+alpha_P = 0.1;
+% epochs_P = 100;
 
 % initiate average cumulative rewards
 R_proposed_cum_C = zeros([t,1]);
@@ -111,19 +113,19 @@ for t_idx = 1:t
     s = s_data(s_id,1:ninfo);
     p = p_data(s_id);
     LoanStatus = status_data(s_id);
-        
-    % assign empty
-    emty_idx = randperm(numel(s(:)),nempty);
-    s(emty_idx) = NaN;
-
+    
     % assign group size
     if isgroup
-        ngroup = randi(100,size(p));
-        s(:,1) = ngroup;
+        ngroup = s(:,1);
+        s(:,1) = (4/100).*ngroup;
     else
         ngroup = ones(size(p));
     end
     
+    % assign empty
+    emty_idx = randperm(numel(s(:)),nempty);
+    s(emty_idx) = NaN;
+
     % dealing with empty information for perceptron, SVM, and
     % Logistic Regression
     s_ne = s; 
@@ -173,28 +175,31 @@ for t_idx = 1:t
         default_prob_pred(t_idx) = sum(default_num_pred)/sum(numA_pred);
         
         % store data for interpolation
-        s_interp_pred = s;
+%         s_temp = s; s_temp(isnan(s)) = 
+        s_interp_pred = s_ne; 
         p_interp_pred = p;
-        
+        xs_pred = rand(1,numel(s(1,:))+1);
+
     else
         tic
         if t_idx <= train_lim
         
             % interpolation model
-            loan_mdl_pred = fit(mean(s_interp_pred,2,'omitnan'),...
-                p_interp_pred,'gauss1',...
-                'Lower',[-realmax,-realmax,realmin],...
-                'Upper',[realmax,realmax,realmax]);
+            loan_mdl_pred = ...
+                @(x) sum(abs(credit_score_model(...
+                s_interp_pred,x) - p_interp_pred));
+            xs_pred = fminunc(loan_mdl_pred,xs_pred,...
+                optimoptions('fminunc','Display','none'));
 
             % store data for next interpolation
-            s_interp_pred = [s_interp_pred;s];
+            s_interp_pred = [s_interp_pred;s_ne];
             p_interp_pred = [p_interp_pred;p];
         
         end
         
         % making decision
-        p_pred = loan_mdl_pred(mean(s,2,'omitnan'));
-        A_pred = ((((c+1).*p_pred)+e-1)>=0);
+        p_pred = credit_score_model(s_ne,xs_pred);
+        A_pred = (p_pred >= ((1-e)/(1+c)));
 
         % calculate rewards
         R_pred = zeros([N,1]);
@@ -216,66 +221,41 @@ for t_idx = 1:t
     
     %% perceptron
     
-    if t_idx == 1
-        
-        % calculate rewards
-        R_P = zeros([N,1]);
-        R_P(LoanStatus) = c+e;
-        R_P(~LoanStatus) = -1+e;
-        
-        % calculate acceptance probability
-        numA_P(t_idx) = N; % number of acceptance
-        ratioAs_P(t_idx) = 1; % acceptance ratio
+    tic
+    
+    % calculate the decision value
+    sP = s_ne./4;
+    
+    % making decision
+    A_P = ((sP*P) + w) >= 0;
 
-        % calculate default probability
-        default_num_P(t_idx) = sum(R_P == (-1+e));
-        default_prob_P(t_idx) = sum(default_num_P)/sum(numA_P);
-        
-        % store data for training
-        s_train_P = s_ne;
-        dec_train_P = double(LoanStatus);
-
-        % train a model
-        loan_mdl_P = perceptron;
-        loan_mdl_P.trainParam.showWindow = 0;
-%         loan_mdl_P.layers{1}.transferFcn = 'elliotsig';
-        loan_mdl_P.trainParam.epochs = 2;
-
-    else
-        tic
-        if t_idx <= train_lim
-        
-            % train a model
-            loan_mdl_P = train(loan_mdl_P,s_train_P',dec_train_P');
-
-            % store data for training
-            s_train_P = [s_train_P;s_ne];
-            dec_train_P = [dec_train_P;double(LoanStatus)];
-        
+    % calculate rewards
+    R_P = zeros([N,1]);
+    R_P(A_P & LoanStatus) = c+e;
+    R_P(A_P & ~LoanStatus) = -1+e;
+    
+    % calculate acceptance probability
+    numA_P(t_idx) = sum(A_P); % number of acceptance
+    ratioAs_P(t_idx) = sum(numA_P)/sum_Nt; % acceptance ratio
+    
+    % calculate default probability
+    default_num_P(t_idx) = sum(R_P == (-1+e));
+    default_prob_P(t_idx) = sum(default_num_P)/sum(numA_P);
+    
+    % updating parameters
+    for app_id = 1:size(sP,1)
+        y_pred = (dot(P,sP(app_id,:)) + w) >= 0;
+        % update weights and bias if prediction is incorrect
+        if y_pred ~= LoanStatus(app_id)
+            P = P + (alpha_P * (LoanStatus(app_id) - y_pred) * sP(app_id,:))';
+            w = w + alpha_P * (LoanStatus(app_id) - y_pred);
         end
-        
-        % making decision
-        A_P = (loan_mdl_P(s_ne'))'; 
-        A_P(isnan(A_P)) = 0; A_P = logical(A_P);
-
-        % calculate rewards
-        R_P = zeros([N,1]);
-        R_P(A_P & LoanStatus) = c+e;
-        R_P(A_P & ~LoanStatus) = -1+e;
-        
-        % calculate acceptance probability
-        numA_P(t_idx) = sum(A_P); % number of acceptance
-        ratioAs_P(t_idx) = sum(numA_P)/sum_Nt; % acceptance ratio
-
-        % calculate default probability
-        default_num_P(t_idx) = sum(R_P == (-1+e));
-        default_prob_P(t_idx) = sum(default_num_P)/sum(numA_P);
-        
-        comp_time_P = toc;
     end
     
     % group reward
     R_P = R_P.*ngroup;
+
+    comp_time_P = toc;
     
     %% Decision Tree
     
@@ -362,10 +342,7 @@ for t_idx = 1:t
         if t_idx <= train_lim
         
             % train a model
-            loan_mdl_svm = fitclinear(s_train_svm,dec_train_svm,...
-                'OptimizeHyperparameters','auto','Learner','svm',...
-                'HyperparameterOptimizationOptions',...
-                struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
+            loan_mdl_svm = fitcsvm(s_train_svm,dec_train_svm);
 
             % store data for training
             s_train_svm = [s_train_svm;s_ne];
@@ -421,10 +398,7 @@ for t_idx = 1:t
         if t_idx <= train_lim
         
             % train a model
-            loan_mdl_L = fitclinear(s_train_L,dec_train_L,...
-                'OptimizeHyperparameters','auto','Learner','logistic',...
-                'HyperparameterOptimizationOptions',...
-                struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
+            loan_mdl_L = glmfit(s_train_L, dec_train_L, 'binomial');
 
             % store data for training
             s_train_L = [s_train_L;s_ne];
@@ -433,7 +407,8 @@ for t_idx = 1:t
         end
         
         % making decision
-        A_L = logical(predict(loan_mdl_L,s_ne));
+%         A_L = logical(predict(loan_mdl_L,s_ne));
+        A_L = (0.5 < glmval(loan_mdl_L,s_ne,'logit'));
 
         % calculate rewards
         R_L = zeros([N,1]);
@@ -639,7 +614,7 @@ else
 end
  
 deltaR = (R - Rbar);
-F = mean((del_pi./pie).*deltaR,1);
+F = mean((del_pi./pie).*deltaR,1,'omitnan');
     Fs = sign(F); F = abs(F); F(isinf(F)) = realmax; F = Fs.*F;
 
 % update parameters
@@ -650,7 +625,7 @@ phi_now = z(1:ninfo);
 eps_now = z(ninfo+1:end);
 
 % summing rewards
-R_sum = sum(R);
+R_sum = sum(R,'omitnan');
 
 end
 
@@ -677,9 +652,13 @@ del_pi(Aid,ninfo+1:end) = par_del(Aid,:);
     
 end
 
+%% credit score model
 
-
-
+function p = credit_score_model(s,x)
+    c = x(1:end-1)*s'+x(end);
+    p = 1./(1+exp(-c'));
+%     p = exp(c')./(1+exp(c'));
+end
 
 
 
