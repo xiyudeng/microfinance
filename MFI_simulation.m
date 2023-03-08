@@ -283,10 +283,7 @@ for t_idx = 1:t
         if t_idx <= train_lim
         
             % train a model
-            loan_mdl_T = fitctree(s_train_T,dec_train_T,...
-                'OptimizeHyperparameters','auto',...
-                'HyperparameterOptimizationOptions',...
-                struct('ShowPlots',false,'Verbose',0,'UseParallel',true));
+            loan_mdl_T = fitctree(s_train_T,dec_train_T);
 
             % store data for training
             s_train_T = [s_train_T;s];
