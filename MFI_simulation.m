@@ -45,7 +45,7 @@ DG_C = gradient_parameters.DG.C;
 Nt = zeros(t,1); % list to store applicants number
 
 % control parameters
-z_lb = -100; z_rng = 200;
+z_lb = -10; z_rng = 20;
 phi_C = zeros(ninfo,nPartcl);
 phis_C = zeros(t,ninfo);
 eps_C = ones(ninfo,nPartcl);
@@ -190,6 +190,8 @@ for t_idx = 1:t
                 s_interp_pred,x) - p_interp_pred));
             xs_pred = fminunc(loan_mdl_pred,xs_pred,...
                 optimoptions('fminunc','Display','none'));
+            % xs_pred = fminsearch(loan_mdl_pred,xs_pred,...
+            %     optimset('Display','none'));
 
             % store data for next interpolation
             s_interp_pred = [s_interp_pred;s_ne];
@@ -275,7 +277,7 @@ for t_idx = 1:t
         default_prob_T(t_idx) = sum(default_num_T)/sum(numA_T);
         
         % store data for training
-        s_train_T = s;
+        s_train_T = s_ne;
         dec_train_T = LoanStatus;
         
     else
@@ -286,13 +288,13 @@ for t_idx = 1:t
             loan_mdl_T = fitctree(s_train_T,dec_train_T);
 
             % store data for training
-            s_train_T = [s_train_T;s];
+            s_train_T = [s_train_T;s_ne];
             dec_train_T = [dec_train_T;LoanStatus];
         
         end
         
         % making decision
-        A_T = predict(loan_mdl_T,s);
+        A_T = predict(loan_mdl_T,s_ne);
 
         % calculate rewards
         R_T = zeros([N,1]);
@@ -429,7 +431,7 @@ for t_idx = 1:t
     %% Proposed Approach
     
     % updating step size
-    alpha_C = DG_C/sqrt(t_idx);
+    alpha_C = DG_C;%/sqrt(t_idx);
 
     if t_idx <= MSO_itr
         
@@ -437,7 +439,7 @@ for t_idx = 1:t
         R_sum_C = zeros(1,nPartcl);
         numA_C = zeros(1,nPartcl);
         default_num_C = zeros(1,nPartcl);
-        parfor p_idx = 1:nPartcl
+        for p_idx = 1:nPartcl
                         
             % current particle
             phi_now = phi_C(:,p_idx);
