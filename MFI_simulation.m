@@ -178,7 +178,19 @@ for t_idx = 1:t
 %         s_temp = s; s_temp(isnan(s)) = 
         s_interp_pred = s_ne; 
         p_interp_pred = p;
-        xs_pred = rand(1,numel(s(1,:))+1);
+        
+        % initialize point search
+        xs_pred = -10 + 20.*rand(10,numel(s(1,:))+1);
+        loan_mdl_pred = @(x) sum(abs(credit_score_model( ...
+            s_interp_pred,x) - p_interp_pred));
+        fs = zeros(10,1);
+        for xs_idx = 1:N
+            [xs_pred(xs_idx,:),fs(xs_idx)] = ...
+                fminunc(loan_mdl_pred,xs_pred(xs_idx,:),...
+                optimoptions('fminunc','Display','none'));
+        end
+        xs_idx = find(fs==min(fs));
+        xs_pred = xs_pred(xs_idx(1),:);
 
     else
         tic
