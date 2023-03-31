@@ -181,8 +181,8 @@ for t_idx = 1:t
         
         % initialize point search
         xs_pred = -10 + 20.*rand(10,numel(s(1,:))+1);
-        loan_mdl_pred = @(x) sum(abs(credit_score_model( ...
-            s_interp_pred,x) - p_interp_pred));
+        loan_mdl_pred = @(x) sum((credit_score_model( ...
+            s_interp_pred,x) - p_interp_pred).^2);
         fs = zeros(10,1);
         for xs_idx = 1:N
             [xs_pred(xs_idx,:),fs(xs_idx)] = ...
