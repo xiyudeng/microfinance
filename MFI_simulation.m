@@ -180,30 +180,42 @@ for t_idx = 1:t
         p_interp_pred = p;
         
         % initialize point search
-        xs_pred = -10 + 20.*rand(10,numel(s(1,:))+1);
-        loan_mdl_pred = @(x) sum((credit_score_model( ...
-            s_interp_pred,x) - p_interp_pred).^2);
-        fs = zeros(10,1);
-        for xs_idx = 1:N
-            [xs_pred(xs_idx,:),fs(xs_idx)] = ...
-                fminunc(loan_mdl_pred,xs_pred(xs_idx,:),...
-                optimoptions('fminunc','Display','none'));
-        end
-        xs_idx = find(fs==min(fs));
-        xs_pred = xs_pred(xs_idx(1),:);
-
+        % xs_pred = -10 + 20.*rand(10,numel(s(1,:))+1);
+        % loan_mdl_pred = @(x) sum((credit_score_model( ...
+        %     s_interp_pred,x) - p_interp_pred).^2);
+        % fs = zeros(10,1);
+        % for xs_idx = 1:N
+        %     [xs_pred(xs_idx,:),fs(xs_idx)] = ...
+        %         fminunc(loan_mdl_pred,xs_pred(xs_idx,:),...
+        %         optimoptions('fminunc','Display','none'));
+        % end
+        % xs_idx = find(fs==min(fs));
+        % xs_pred = xs_pred(xs_idx(1),:);
+        xs_num = 5;
+        xs_pred = -10 + 20.*rand(xs_num,numel(s(1,:))+1);
+        fs = zeros(xs_num,1);
+        loan_mdl_pred = @(x,s) credit_score_model(s,x);
+        
     else
         tic
         if t_idx <= train_lim
         
             % interpolation model
-            loan_mdl_pred = ...
-                @(x) sum(abs(credit_score_model(...
-                s_interp_pred,x) - p_interp_pred));
-            xs_pred = fminunc(loan_mdl_pred,xs_pred,...
-                optimoptions('fminunc','Display','none'));
+            % loan_mdl_pred = ...
+            %     @(x) sum(abs(credit_score_model(...
+            %     s_interp_pred,x) - p_interp_pred));
+            % xs_pred = fminunc(loan_mdl_pred,xs_pred,...
+            %     optimoptions('fminunc','Display','none'));
             % xs_pred = fminsearch(loan_mdl_pred,xs_pred,...
             %     optimset('Display','none'));
+            % loan_mdl_pred = fit(mean(s_interp_pred,2),p_interp_pred, ...
+            %     'exp1');
+            for xs_idx = 1:xs_num
+            [xs_pred(xs_idx,:),fs(xs_idx)] = ...
+                lsqcurvefit(loan_mdl_pred,xs_pred(xs_idx,:), ...
+                s_interp_pred,p_interp_pred);
+            end
+            xs_idx = find(fs==min(fs));
 
             % store data for next interpolation
             s_interp_pred = [s_interp_pred;s_ne];
@@ -212,7 +224,8 @@ for t_idx = 1:t
         end
         
         % making decision
-        p_pred = credit_score_model(s_ne,xs_pred);
+        p_pred = credit_score_model(s_ne,xs_pred(xs_idx(1),:));
+        % p_pred = loan_mdl_pred(mean(s_ne,2));
         A_pred = (p_pred >= ((1-e)/(1+c)));
 
         % calculate rewards
